@@ -1,0 +1,1303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>rolands barkans</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Kosugi+Maru&family=Yomogi&display=swap" rel="stylesheet">
+
+  <script src="js/core/boot.js"></script>
+  <script>
+    loadLocal('js/core/assets.js');
+    loadLocal('js/core/music.js');
+
+    loadLocal('css/scene/room.css');
+    loadLocal('css/scene/hotspots.css');
+    loadLocal('css/scene/tag.css');
+    loadLocal('css/scene/bee.css');
+    loadLocal('css/effects/flowers.css');
+    loadLocal('css/effects/leaves.css');
+    loadLocal('css/effects/debris.css');
+    loadLocal('css/effects/needles.css');
+    loadLocal('css/effects/birds.css');
+    loadLocal('css/sky/day.css');
+    loadLocal('css/sky/night.css');
+  </script>
+
+  <style>
+    :root {
+      --wash: #CBDCF7;
+      --tag-size: 1.15vw;
+      --bee-font: 'Kosugi Maru';
+      --bee-size: 14px;
+      --bee-max: 320px;
+    }
+
+    body {
+      background-color: #CBDCF7;
+
+      /* A picture to click around in: without this a double-click drags a selection. */
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    /* Scenery sits in this box, so its left/top/width are percentages of the island. */
+    .land-layer {
+      position: absolute;
+      left: 50.1%;
+      top: 76.3%;
+      width: 106.7%;
+      aspect-ratio: 1365 / 335;
+      transform: translate(-50%, -50%);
+    }
+
+    .land {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* top is an object's centre, so a negative value is normal here. */
+
+    .tree1 { left: 5.7%;  top: 1.8%;   width: 10.4%; }
+    .tree2 { left: 19.0%; top: -43.1%; width: 12.6%; }
+    .tree3 { left: 38.6%; top: -50.2%; width: 12.7%; }
+    .tree4 { left: 68.8%; top: -44.3%; width: 7.8%; }
+    .tree5 { left: 80.5%; top: -48.5%; width: 10.6%; }
+
+    /* tree2 and tree3 hold the hammock's ends; check the knots after moving either. */
+
+    .tree5 .swell { position: relative; z-index: 1; }
+    .tree5 .birds { z-index: 0; }
+
+    .stone1 { left: 73.8%; top: 4.5%; width: 5.5%; }
+    .stone2 { left: 44.3%; top: 5.7%; width: 6.8%; }
+
+    /* Small objects need a bigger --grow: the same percentage travels fewer pixels. */
+    .mushroom1 { left: 41.5%; top: 26.6%; width: 2.6%; --grow: 0.16; }
+    .mushroom2 { left: 77.9%; top: 12.7%; width: 2.2%; --grow: 0.16; }
+
+    .log { left: 65.7%; top: 62.1%; width: 8.1%; --lean: 0deg; }
+
+    .airpods { left: 32.9%; top: 26.4%; width: 1.0%; --grow: 0.30; }
+    .shoes { left: 25.3%; top: 30.4%; width: 2.5%; --grow: 0.16; --lean: 0deg; }
+
+    .owl {
+      left: 42.5%;
+      top: -51.1%;
+      width: 2.5%;
+      --grow: 0.1;
+      --spin: 0deg;
+
+      /* display is in the transition: an invisible owl would still swallow tree3's hover. */
+      opacity: 0;
+      display: none;
+      transition: opacity 0.85s ease-in,
+                  display 0.85s allow-discrete;
+    }
+
+    body.night .owl {
+      opacity: 1;
+      display: block;
+      transition: opacity 1.7s ease-out 0.75s,
+                  display 2.45s allow-discrete;
+    }
+
+    .owl .owl-ride {
+      scale: 0.94;
+      transition: scale 0.85s ease-in;
+    }
+
+    body.night .owl .owl-ride {
+      scale: 1;
+      transition: scale 1.9s cubic-bezier(0.2, 0.8, 0.3, 1) 0.75s;
+    }
+
+    @starting-style {
+      body.night .owl { opacity: 0; }
+      body.night .owl .owl-ride { scale: 0.94; }
+    }
+
+    /* A camp that was already dark must not fade the owl in again. */
+    body.night-instant .owl,
+    body.night-instant .owl .owl-ride { transition: none !important; }
+
+    /* The owl is translated by however far a brushed tree3 carries its branch; the script at the foot of the page measures it into --ride-*. */
+    .owl.with-tree {
+      --grow: 0.07;
+    }
+
+    .owl .owl-ride { display: block; }
+
+    .owl.with-tree .owl-ride {
+      animation: owl-ride-lead var(--dur-nudge),
+                 owl-ride-drag var(--dur-nudge) var(--lag);
+    }
+
+    @keyframes owl-ride-lead {
+      0% {
+        translate: 0 0;
+        animation-timing-function: cubic-bezier(0.15, 0.75, 0.35, 1);
+      }
+      32% {
+        translate: var(--ride-xl) var(--ride-y);
+        animation-timing-function: cubic-bezier(0.4, 0, 0.4, 1);
+      }
+      68% {
+        translate: calc(var(--ride-xl) * -0.25) calc(var(--ride-y) * -0.15);
+        animation-timing-function: ease-out;
+      }
+      100% { translate: 0 0; }
+    }
+
+    @keyframes owl-ride-drag {
+      0% {
+        transform: translateX(0);
+        animation-timing-function: cubic-bezier(0.15, 0.75, 0.35, 1);
+      }
+      32% {
+        transform: translateX(var(--ride-xd));
+        animation-timing-function: cubic-bezier(0.4, 0, 0.4, 1);
+      }
+      68% {
+        transform: translateX(calc(var(--ride-xd) * -0.15));
+        animation-timing-function: ease-out;
+      }
+      100% { transform: translateX(0); }
+    }
+
+    /* Five frames in register, and no transition, or the blink smears. */
+    .owl .swell { position: relative; }
+    .owl .owl-frame { opacity: 0; }
+
+    .owl .owl-frame + .owl-frame {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+    }
+
+    .owl .owl-frame.on { opacity: 1; }
+
+    /* The patch is the door, not each flower: a flower grows away from the pointer and dodges. */
+
+    .flowers {
+      position: absolute;
+      left: 28.8%;
+      top: 85.3%;
+      width: 37.4%;
+      transform: translate(-50%, -50%);
+      cursor: pointer;
+      --growth: 0.85;
+    }
+
+    /* Inline so each tongue is reachable. Every frame is M + five C + Z, or the shape jumps. */
+
+    .bonfire {
+      position: absolute;
+      left: 57.4%;
+      top: 82.5%;
+      width: 5.6%;
+      aspect-ratio: 0.796;
+      --grow: 0.09;
+      --lean: 1.2deg;
+      pointer-events: none;
+    }
+
+    /* Positioned, so the shadow below stays under the stones. */
+    .bonfire .swell { position: relative; }
+
+    /* The wrapper ignores the pointer and the painted parts take it back; sparks are mid-air. */
+    .bonfire svg {
+      overflow: visible;
+      pointer-events: none;
+    }
+
+    .bonfire path:not(.fire-jet),
+    .bonfire ellipse:not(.fire-spark) {
+      pointer-events: auto;
+    }
+
+    .fire-flames {
+      transform-box: view-box;
+      transform-origin: 50px 106px;
+      animation: fire-breathe 0.71s ease-in-out infinite alternate;
+    }
+
+    .fire-outer { animation: fire-outer 1.15s ease-in-out infinite; }
+    .fire-inner { animation: fire-inner 0.83s ease-in-out infinite; }
+
+    .fire-spark {
+      animation: fire-spark 2.1s ease-out infinite;
+      transform-box: view-box;
+    }
+
+    .fire-spark-2 { animation-duration: 2.9s; animation-delay: -1.1s; }
+    .fire-spark-3 { animation-duration: 1.7s; animation-delay: -0.6s; }
+
+    /* This transition is the dying one; the body.night rule below is the catching. */
+    .fire-body {
+      transform-box: view-box;
+      transform-origin: 50px 108px;
+      transform: scale(0.72, 0.05);
+      opacity: 0;
+      transition: transform 3.4s cubic-bezier(0.33, 0, 0.3, 1),
+                  opacity 2.5s ease 0.7s;
+    }
+
+    body.night .fire-body {
+      transform: scale(1, 1);
+      opacity: 1;
+      transition: transform 1.5s cubic-bezier(0.16, 0.9, 0.3, 1),
+                  opacity 0.7s ease;
+    }
+
+    .fire-ember {
+      transform-box: fill-box;
+      transform-origin: 50% 60%;
+      animation: ember-glow 2.6s ease-in-out infinite,
+                 ember-swell 3.1s ease-in-out infinite alternate;
+    }
+
+    .fire-ember-1 { animation-delay: -0.4s, -1.9s; }
+    .fire-ember-2 { animation-duration: 1.7s, 2.3s; animation-delay: -0.8s, -0.5s; }
+    .fire-ember-3 { animation-duration: 3.3s, 4.1s; animation-delay: -2.1s, -3.2s; }
+    .fire-ember-4 { animation-duration: 2.1s, 2.7s; animation-delay: -1.4s, -0.9s; }
+    .fire-ember-5 { animation-duration: 4.3s, 3.7s; animation-delay: -3.1s, -2.4s; }
+    .fire-ember-6 { animation-duration: 1.3s, 1.9s; animation-delay: -0.2s, -1.1s; }
+    .fire-ember-7 { animation-duration: 3.7s, 4.9s; animation-delay: -2.6s, -4.0s; }
+    .fire-ember-8 { animation-duration: 1.9s, 2.1s; animation-delay: -1.1s, -0.3s; }
+
+    @keyframes ember-glow {
+      0%   { opacity: 0.30; }
+      17%  { opacity: 0.74; }
+      31%  { opacity: 0.42; }
+      48%  { opacity: 0.96; }
+      59%  { opacity: 0.64; }
+      73%  { opacity: 1; }
+      86%  { opacity: 0.51; }
+      100% { opacity: 0.30; }
+    }
+
+    @keyframes ember-swell {
+      from { transform: scale(0.9, 0.88); }
+      to   { transform: scale(1.1, 1.12); }
+    }
+
+    .fire-bed {
+      animation: bed-breathe 7.3s ease-in-out infinite;
+      transition: opacity 2.4s ease 0.9s;
+    }
+
+    @keyframes bed-breathe {
+      0%   { opacity: 0.55; }
+      22%  { opacity: 0.9; }
+      41%  { opacity: 0.68; }
+      64%  { opacity: 1; }
+      83%  { opacity: 0.72; }
+      100% { opacity: 0.55; }
+    }
+
+    body.night .fire-bed {
+      opacity: 0;
+      animation: none;
+      transition: opacity 0.55s ease;
+    }
+
+    .fire-heat {
+      animation: bed-breathe 9.1s ease-in-out infinite;
+      transition: opacity 2.6s ease 1.1s;
+    }
+
+    body.night .fire-heat {
+      opacity: 0;
+      animation: none;
+      transition: opacity 0.5s ease;
+    }
+
+    .ash-fleck {
+      transform-box: fill-box;
+      transform-origin: 50% 100%;
+      opacity: 0;
+      animation: ash-lift var(--ash-dur, 7s) ease-out var(--ash-delay, 0s) infinite;
+    }
+
+    .ash-1 { --ash-dur: 7.4s;  --ash-delay: -1.2s; --ash-rise: 34px; --ash-drift:  5px; }
+    .ash-2 { --ash-dur: 9.7s;  --ash-delay: -5.9s; --ash-rise: 27px; --ash-drift: -6px; }
+    .ash-3 { --ash-dur: 11.3s; --ash-delay: -8.4s; --ash-rise: 41px; --ash-drift:  9px; }
+
+    @keyframes ash-lift {
+      0%   { transform: translate(0, 0) scale(0.7); opacity: 0; }
+      12%  { opacity: 0.85; }
+      34%  { transform: translate(calc(var(--ash-drift) * -0.4),
+                                 calc(var(--ash-rise) * -0.38)) scale(1); }
+      62%  { opacity: 0.5; }
+      100% { transform: translate(var(--ash-drift),
+                                  calc(var(--ash-rise) * -1)) scale(0.75); opacity: 0; }
+    }
+
+    .fire-smoke {
+      opacity: 0.9;
+      transition: opacity 1.9s ease 1.7s;
+    }
+
+    body.night .fire-smoke {
+      opacity: 0;
+      transition: opacity 0.35s ease;
+    }
+
+    .smoke-puff {
+      transform-box: fill-box;
+      transform-origin: 50% 100%;
+      opacity: 0;
+      animation: smoke-rise var(--smoke-dur, 4.5s) ease-out var(--smoke-delay, 0s) infinite;
+    }
+
+    @keyframes smoke-rise {
+      0%   { transform: translate(0, 0) scale(0.35); opacity: 0; }
+      14%  { opacity: 0.72; }
+      32%  { transform: translate(calc(var(--smoke-drift, 6px) * -0.55),
+                                  calc(var(--smoke-rise, 60px) * -0.3)) scale(0.85);
+             opacity: 0.66; }
+      58%  { transform: translate(calc(var(--smoke-drift, 6px) * 0.9),
+                                  calc(var(--smoke-rise, 60px) * -0.6)) scale(1.3);
+             opacity: 0.42; }
+      79%  { transform: translate(calc(var(--smoke-drift, 6px) * 0.3),
+                                  calc(var(--smoke-rise, 60px) * -0.82)) scale(1.62);
+             opacity: 0.2; }
+      100% { transform: translate(var(--smoke-drift, 6px),
+                                  calc(var(--smoke-rise, 60px) * -1)) scale(1.95); opacity: 0; }
+    }
+
+    .smoke-1 { --smoke-rise: 62px; --smoke-drift:  7px; --smoke-dur: 4.6s; --smoke-delay: 0s; }
+    .smoke-2 { --smoke-rise: 54px; --smoke-drift: -5px; --smoke-dur: 5.3s; --smoke-delay: -1.1s; }
+    .smoke-3 { --smoke-rise: 70px; --smoke-drift: 11px; --smoke-dur: 6.1s; --smoke-delay: -2.4s; }
+    .smoke-4 { --smoke-rise: 48px; --smoke-drift: -9px; --smoke-dur: 3.9s; --smoke-delay: -3.2s; }
+    .smoke-5 { --smoke-rise: 66px; --smoke-drift:  3px; --smoke-dur: 5.7s; --smoke-delay: -4.5s; }
+
+    .fire-lick {
+      transform-box: view-box;
+      transform-origin: 50px 108px;
+      transition: transform 0.28s cubic-bezier(0.22, 0.9, 0.3, 1);
+    }
+
+    body.night .bonfire.flaring .fire-lick { transform: scale(1.09, 1.2); }
+
+    body.night .bonfire.poked .fire-lick {
+      animation: fire-poke 0.62s cubic-bezier(0.22, 0.9, 0.3, 1);
+    }
+
+    body:not(.night) .bonfire.flaring .fire-ember { animation-duration: 0.75s, 1.1s; }
+    body:not(.night) .bonfire.flaring .fire-bed { animation-duration: 2.3s; }
+    body:not(.night) .bonfire.flaring .fire-heat { animation-duration: 2.9s; }
+
+    body:not(.night) .bonfire.flaring .fire-smoke {
+      opacity: 1;
+      transition: opacity 0.25s ease;
+    }
+
+    body:not(.night) .bonfire.poked .fire-smoke {
+      animation: smoke-stir 0.9s ease-out;
+    }
+
+    @keyframes smoke-stir {
+      0%   { opacity: 1; transform: translateY(0) scale(1); }
+      35%  { opacity: 1; transform: translateY(-3px) scale(1.28); }
+      100% { opacity: 0.9; transform: translateY(0) scale(1); }
+    }
+
+    @keyframes fire-poke {
+      0%   { transform: scale(1, 1); }
+      22%  { transform: scale(1.16, 1.42); }
+      55%  { transform: scale(1.02, 1.12); }
+      100% { transform: scale(1.09, 1.2); }
+    }
+
+    .fire-jet {
+      transform-box: fill-box;
+      transform-origin: 50% 100%;
+      opacity: 0;
+    }
+
+    body.night .bonfire.flaring .fire-jet,
+    body.night .bonfire.poked .fire-jet {
+      animation: fire-jet var(--jet-dur, 0.75s) ease-out var(--jet-delay, 0s) infinite;
+    }
+
+    .fire-jet-1 { --jet-rise: 34px; --jet-drift: -10px; --jet-dur: 0.78s; --jet-delay: 0s; }
+    .fire-jet-2 { --jet-rise: 30px; --jet-drift:   9px; --jet-dur: 0.66s; --jet-delay: 0.19s; }
+    .fire-jet-3 { --jet-rise: 22px; --jet-drift:  -3px; --jet-dur: 0.90s; --jet-delay: 0.36s; }
+    .fire-jet-4 { --jet-rise: 26px; --jet-drift: -11px; --jet-dur: 0.58s; --jet-delay: 0.12s; }
+    .fire-jet-5 { --jet-rise: 24px; --jet-drift:  10px; --jet-dur: 0.70s; --jet-delay: 0.29s; }
+
+    body.night .bonfire.poked .fire-jet {
+      animation-duration: 0.5s;
+      animation-delay: 0s;
+      --jet-rise: 34px;
+    }
+
+    @keyframes fire-jet {
+      0%   { transform: translate(0, 0) scale(0.25); opacity: 0; }
+      18%  { opacity: 1; }
+      55%  { transform: translate(calc(var(--jet-drift, 0px) * 0.5),
+                                 calc(var(--jet-rise, 22px) * -0.55)) scale(1); opacity: 1; }
+      100% { transform: translate(var(--jet-drift, 0px),
+                                 calc(var(--jet-rise, 22px) * -1)) scale(0.15); opacity: 0; }
+    }
+
+    @keyframes fire-breathe {
+      from { transform: scaleY(0.97) scaleX(1.02); }
+      to   { transform: scaleY(1.05) scaleX(0.98); }
+    }
+
+    @keyframes fire-outer {
+      0%   { d: path('M30 106 C22 88 26 66 38 52 C47 41 42 32 50 22 C58 34 55 44 63 54 C73 66 78 88 70 106 C58 113 42 113 30 106 Z'); }
+      25%  { d: path('M30 106 C24 90 22 70 35 58 C45 48 46 36 54 28 C61 40 57 47 65 57 C75 70 78 90 70 106 C58 113 42 113 30 106 Z'); }
+      50%  { d: path('M30 106 C21 86 28 62 39 48 C48 37 43 26 48 16 C59 30 57 41 64 51 C73 63 79 87 70 106 C58 113 42 113 30 106 Z'); }
+      75%  { d: path('M30 106 C23 92 25 72 37 60 C46 50 45 38 52 30 C61 42 56 46 66 56 C76 68 78 89 70 106 C58 113 42 113 30 106 Z'); }
+      100% { d: path('M30 106 C22 88 26 66 38 52 C47 41 42 32 50 22 C58 34 55 44 63 54 C73 66 78 88 70 106 C58 113 42 113 30 106 Z'); }
+    }
+
+    @keyframes fire-inner {
+      0%   { d: path('M40 102 C35 90 38 76 45 66 C50 59 47 53 51 46 C57 56 55 63 59 70 C64 79 66 92 61 102 C54 106 46 106 40 102 Z'); }
+      25%  { d: path('M40 102 C36 92 36 78 44 70 C50 63 50 56 53 50 C58 59 55 65 60 72 C65 81 65 93 61 102 C54 106 46 106 40 102 Z'); }
+      50%  { d: path('M40 102 C34 88 40 72 46 62 C51 55 47 48 50 40 C58 52 55 61 60 68 C65 78 67 91 61 102 C54 106 46 106 40 102 Z'); }
+      75%  { d: path('M40 102 C36 91 37 75 45 68 C51 61 50 54 52 48 C58 57 55 64 59 71 C64 80 66 92 61 102 C54 106 46 106 40 102 Z'); }
+      100% { d: path('M40 102 C35 90 38 76 45 66 C50 59 47 53 51 46 C57 56 55 63 59 70 C64 79 66 92 61 102 C54 106 46 106 40 102 Z'); }
+    }
+
+    @keyframes fire-spark {
+      0%   { transform: translate(0, 0) scale(0.6); opacity: 0; }
+      18%  { opacity: 1; }
+      70%  { opacity: 1; }
+      100% { transform: translate(-7px, -46px) scale(0.35); opacity: 0; }
+    }
+
+    .bonfire-shadow {
+      position: absolute;
+      left: 50%;
+      top: 100%;
+      width: 108%;
+      aspect-ratio: 3.6;
+      background: #7D8D32;
+      border-radius: 50%;
+      transform: translate(-50%, -78%) rotate(-4deg);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .fire-outer,
+      .fire-inner,
+      .fire-spark,
+      body.night .bonfire.flaring .fire-jet,
+      body.night .bonfire.poked .fire-jet,
+      body.night .bonfire.poked .fire-lick {
+        animation: none;
+      }
+      .fire-ember,
+      .fire-heat,
+      .fire-bed {
+        animation: none;
+        opacity: 0.8;
+      }
+      .fire-ember { transform: none; }
+      .fire-smoke,
+      .fire-ash { display: none; }
+    }
+
+    .bush1 {
+      position: absolute;
+      left: 9.6%;
+      top: 74.8%;
+      width: 7%;
+      --spin: 0deg;
+      --grow: 0.11;
+      --lean: 2deg;
+    }
+
+    .bush2 {
+      position: absolute;
+      left: 91.1%;
+      top: 65.1%;
+      width: 18.1%;
+      --spin: 0deg;
+      --grow: 0.09;
+      --lean: 2deg;
+      /* Above 1 because this canopy is far wider than bush1's. */
+      --leaf-count: 1.6;
+    }
+
+    /* Anchored at its feet, which keeps the pegs on the shadows painted into land.svg. */
+    .tent {
+      position: absolute;
+      left: 60.4%;
+      top: 60.6%;
+      width: 29.8%;
+      --tag-y: -17.2%;
+      --tag-x: 41.2%;
+      --tag-tilt: -2.5deg;
+      --tip: -11deg;
+      --spread: 0;
+      --grow: 0.045;
+    }
+
+    .backpack {
+      position: absolute;
+      left: 50.2%;
+      top: 65.1%;
+      width: 7.0%;
+      --grow: 0.10;
+      --tag-y: -28%;
+      --tag-x: 49%;
+      --tag-tilt: 2deg;
+    }
+
+    /* Hangs, so it is anchored at the top and swells downward. */
+    .hammock {
+      position: absolute;
+      left: 27.2%;
+      top: 54.6%;
+      width: 22.4%;
+      --tag-y: 39.6%;
+      --tag-x: 46.9%;
+      --tag-tilt: -3.5deg;
+      --origin: 50% 0%;
+      --tip: 11deg;
+      --spread: 0;
+      --grow: 0.05;
+      --lean: 1.4deg;
+    }
+
+    /* Outside .swell, so each rope end is given back only the movement it should have. */
+
+    .hammock-ropes {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+      pointer-events: none;
+      z-index: 0;
+      transform: none;
+      animation: none;
+      --tug: 1;
+    }
+
+    .hammock .swell {
+      position: relative;
+      z-index: 1;
+    }
+
+    .hammock-ropes g { transform-box: view-box; }
+
+    .knot-l-fit {
+      transform-origin: 0.5px 0;
+      transform: translate(-1.56px, 0) scaleX(1.0462);
+    }
+
+    .knot-r-fit {
+      transform-origin: 267.718px 0;
+      transform: translate(-1.318px, 0) scaleX(1.109);
+    }
+
+    .rope-l  { transform-origin: 33.96px 73.46px;  --stretch: 0.2175; --swing: 2.53deg; }
+    .rope-r1 { transform-origin: 237.05px 67.42px; --stretch: 0.0597; --swing: -5.2deg; }
+    .rope-r2 { transform-origin: 210.66px 65.05px; --stretch: 0.0507; --swing: -4.58deg; }
+
+    .knot-l { --ride-x: -2.52; --ride-y: -9.31; }
+    .knot-r { --ride-x: -2.23; --ride-y: -7.81; }
+
+    .rope-l-hold  { transform-origin: 14.5px 34.6px;    --hold-stretch: 0.0774; --hold-swing: 3.98deg; }
+    .rope-r1-hold { transform-origin: 285.84px 10.72px; --hold-stretch: 0.0034; --hold-swing: -4.27deg; }
+    .rope-r2-hold { transform-origin: 267.72px 0.96px;  --hold-stretch: 0.0064; --hold-swing: -3.24deg; }
+
+    .hammock-ropes .rope-hold {
+      transform: rotate(0deg) scale(1);
+      transition: transform var(--dur-out) var(--spring-out);
+    }
+
+    .hammock.lit .rope-hold {
+      transform: rotate(var(--hold-swing)) scale(calc(1 + var(--hold-stretch)));
+      transition: transform var(--dur-in) var(--spring-in);
+    }
+
+    .hammock-ropes .tugged.rope-l,
+    .hammock-ropes .tugged.rope-r1,
+    .hammock-ropes .tugged.rope-r2 {
+      animation: rope-tug var(--dur-nudge, 0.55s);
+    }
+
+    .hammock-ropes .tugged.knot-l,
+    .hammock-ropes .tugged.knot-r {
+      animation: knot-ride var(--dur-nudge, 0.55s);
+    }
+
+    @keyframes rope-tug {
+      0% {
+        transform: rotate(0deg) scale(1);
+        animation-timing-function: cubic-bezier(0.15, 0.75, 0.35, 1);
+      }
+      32% {
+        transform: rotate(calc(var(--swing) * var(--tug)))
+                   scale(calc(1 + var(--stretch) * var(--tug)));
+        animation-timing-function: cubic-bezier(0.4, 0, 0.4, 1);
+      }
+      68% {
+        transform: rotate(calc(var(--swing) * var(--tug) * -0.15))
+                   scale(calc(1 - var(--stretch) * var(--tug) * 0.15));
+        animation-timing-function: ease-out;
+      }
+      100% { transform: rotate(0deg) scale(1); }
+    }
+
+    @keyframes knot-ride {
+      0% {
+        transform: translate(0, 0);
+        animation-timing-function: cubic-bezier(0.15, 0.75, 0.35, 1);
+      }
+      32% {
+        transform: translate(calc(var(--ride-x) * var(--tug) * 1px),
+                             calc(var(--ride-y) * var(--tug) * 1px));
+        animation-timing-function: cubic-bezier(0.4, 0, 0.4, 1);
+      }
+      68% {
+        transform: translate(calc(var(--ride-x) * var(--tug) * -0.15px),
+                             calc(var(--ride-y) * var(--tug) * -0.15px));
+        animation-timing-function: ease-out;
+      }
+      100% { transform: translate(0, 0); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .hammock-ropes g { animation: none !important; }
+    }
+
+  </style>
+</head>
+<body class="framed-room">
+
+  <div class="scene framed">
+
+    <div class="land-layer">
+
+      <img class="land" src="illustrations/main/land.svg" alt="Campsite island">
+
+      <div class="tree1 hotspot decor sheds-needles">
+        <span class="swell"><img src="illustrations/main/tree1.svg" alt="Pine tree"></span>
+      </div>
+
+      <div class="tree2 hotspot decor sheds-needles">
+        <span class="swell"><img src="illustrations/main/tree2.svg" alt="Pine tree"></span>
+      </div>
+
+      <div class="tree3 hotspot decor sheds-needles">
+        <span class="swell"><img src="illustrations/main/tree3.svg" alt="Pine tree"></span>
+      </div>
+
+      <div class="tree4 hotspot decor sheds-needles">
+        <span class="swell"><img src="illustrations/main/tree4.svg" alt="Pine tree"></span>
+      </div>
+
+      <div class="tree5 hotspot decor takes-flight sheds-needles">
+        <span class="birds"></span>
+        <span class="swell"><img src="illustrations/main/tree5.svg" alt="Pine tree"></span>
+      </div>
+
+      <div class="owl hotspot decor">
+        <span class="owl-ride">
+        <span class="swell">
+          <img class="owl-frame on" src="illustrations/main/owl/owl1.svg" alt="Owl">
+          <img class="owl-frame" src="illustrations/main/owl/owl2.svg" alt="" aria-hidden="true">
+          <img class="owl-frame" src="illustrations/main/owl/owl3.svg" alt="" aria-hidden="true">
+          <img class="owl-frame" src="illustrations/main/owl/owl4.svg" alt="" aria-hidden="true">
+          <img class="owl-frame" src="illustrations/main/owl/owl5.svg" alt="" aria-hidden="true">
+        </span>
+        </span>
+      </div>
+
+      <div class="stone1 hotspot decor sheds-chips">
+        <span class="swell"><img src="illustrations/main/stone1.svg" alt="Rock"></span>
+      </div>
+
+      <div class="stone2 hotspot decor sheds-chips">
+        <span class="swell"><img src="illustrations/main/stone2.svg" alt="Rock"></span>
+      </div>
+
+      <div class="mushroom1 hotspot decor">
+        <span class="swell"><img src="illustrations/main/mushroom1.svg" alt="Mushroom"></span>
+      </div>
+
+      <div class="mushroom2 hotspot decor">
+        <span class="swell"><img src="illustrations/main/mushroom2.svg" alt="Mushroom"></span>
+      </div>
+
+      <div class="log hotspot decor sheds-shavings">
+        <span class="swell"><img src="illustrations/main/log.svg" alt="Log"></span>
+      </div>
+
+      <div class="airpods hotspot decor">
+        <span class="swell"><img src="illustrations/main/airpods_small.svg" alt="Airpods"></span>
+      </div>
+
+      <div class="shoes hotspot decor">
+        <span class="swell"><img src="illustrations/main/shoes.svg" alt="Shoes"></span>
+      </div>
+
+    </div>
+
+    <div class="flowers"></div>
+
+    <div class="bonfire hotspot decor">
+      <div class="bonfire-shadow"></div>
+      <span class="swell">
+      <svg viewBox="0 0 100 126" fill="none" aria-hidden="true">
+
+        <g fill="#787366" stroke="#383630" stroke-width="1.6">
+          <ellipse cx="27" cy="97" rx="15" ry="9.5" transform="rotate(-8 27 97)"/>
+          <ellipse cx="73" cy="96" rx="14" ry="9" transform="rotate(6 73 96)"/>
+        </g>
+        <g fill="#DFB967">
+          <ellipse cx="23" cy="92" rx="7" ry="3" transform="rotate(-10 23 92)"/>
+          <ellipse cx="76" cy="91" rx="6" ry="2.6" transform="rotate(8 76 91)"/>
+        </g>
+
+        <defs>
+          <radialGradient id="fireHeat">
+            <stop offset="0%" stop-color="#FF8A2B" stop-opacity="0.75"/>
+            <stop offset="55%" stop-color="#F26522" stop-opacity="0.28"/>
+            <stop offset="100%" stop-color="#F26522" stop-opacity="0"/>
+          </radialGradient>
+          <radialGradient id="fireBed">
+            <stop offset="0%" stop-color="#FFC24A" stop-opacity="0.68"/>
+            <stop offset="45%" stop-color="#FF8A2B" stop-opacity="0.34"/>
+            <stop offset="100%" stop-color="#F26522" stop-opacity="0"/>
+          </radialGradient>
+          <radialGradient id="fireSmoke">
+            <stop offset="0%" stop-color="#9AA1AF" stop-opacity="0.72"/>
+            <stop offset="60%" stop-color="#8E96A6" stop-opacity="0.36"/>
+            <stop offset="100%" stop-color="#8E96A6" stop-opacity="0"/>
+          </radialGradient>
+        </defs>
+
+        <g class="fire-remains">
+          <ellipse class="fire-heat" cx="50" cy="97" rx="25" ry="10" fill="url(#fireHeat)"/>
+
+          <ellipse cx="50" cy="98.5" rx="21" ry="6.6" fill="#A79F8F"/>
+          <ellipse cx="50" cy="96.6" rx="19" ry="5.4" fill="#CBC4B4"/>
+          <ellipse cx="48" cy="95" rx="12.5" ry="3.2" fill="#E7E2D6"/>
+
+          <g>
+            <rect x="27" y="92" width="46" height="6.2" rx="3.1" fill="#372C22" transform="rotate(-8 50 95.1)"/>
+            <rect x="28.5" y="91.4" width="43" height="2.8" rx="1.4" fill="#6B5843" transform="rotate(-8 50 95.1)"/>
+            <rect x="31" y="88.6" width="40" height="5.6" rx="2.8" fill="#2F251C" transform="rotate(13 51 91.4)"/>
+            <rect x="32.5" y="88" width="37" height="2.5" rx="1.25" fill="#5E4C3A" transform="rotate(13 51 91.4)"/>
+          </g>
+
+          <ellipse class="fire-bed" cx="49" cy="96.4" rx="19" ry="6.4" fill="url(#fireBed)"/>
+
+          <g class="fire-embers">
+            <ellipse class="fire-ember fire-ember-1" cx="41" cy="97.8" rx="3.4" ry="2.4" fill="#FF7A2A"/>
+            <ellipse class="fire-ember fire-ember-2" cx="55" cy="95.8" rx="2.8" ry="2" fill="#FFC53D"/>
+            <ellipse class="fire-ember fire-ember-3" cx="47" cy="99" rx="2.4" ry="1.7" fill="#FF7A2A"/>
+            <ellipse class="fire-ember fire-ember-4" cx="62" cy="97.6" rx="2.2" ry="1.6" fill="#FF9A3C"/>
+            <ellipse class="fire-ember fire-ember-5" cx="36" cy="95.6" rx="1.9" ry="1.4" fill="#C7401A"/>
+            <ellipse class="fire-ember fire-ember-6" cx="51" cy="97.4" rx="1.5" ry="1.1" fill="#FFE9A8"/>
+            <ellipse class="fire-ember fire-ember-7" cx="66" cy="94.8" rx="1.7" ry="1.2" fill="#C7401A"/>
+            <ellipse class="fire-ember fire-ember-8" cx="44" cy="94.4" rx="1.4" ry="1" fill="#FFDE17"/>
+          </g>
+
+          <g class="fire-ash">
+            <ellipse class="ash-fleck ash-1" cx="43" cy="94" rx="0.85" ry="0.7" fill="#D8D2C4"/>
+            <ellipse class="ash-fleck ash-2" cx="55" cy="93" rx="0.65" ry="0.55" fill="#C4BDAD"/>
+            <ellipse class="ash-fleck ash-3" cx="49" cy="95" rx="0.75" ry="0.6" fill="#E2DDD1"/>
+          </g>
+        </g>
+
+        <g class="fire-body">
+
+        <g class="fire-lick">
+          <g class="fire-flames">
+            <path class="fire-outer" fill="#F26522"
+                  d="M30 106 C22 88 26 66 38 52 C47 41 42 32 50 22 C58 34 55 44 63 54 C73 66 78 88 70 106 C58 113 42 113 30 106 Z"/>
+            <path class="fire-inner" fill="#FFDE17"
+                  d="M40 102 C35 90 38 76 45 66 C50 59 47 53 51 46 C57 56 55 63 59 70 C64 79 66 92 61 102 C54 106 46 106 40 102 Z"/>
+          </g>
+
+          <!-- Each <g> is where one tongue starts from. -->
+          <g fill="#F26522">
+            <g transform="translate(26 98)">
+              <path class="fire-jet fire-jet-1"
+                    d="M0 0 C-7.3 -8.1 -6.2 -17.6 0 -27 C6.2 -17.6 7.3 -8.1 0 0 Z"/>
+            </g>
+            <g transform="translate(75 99)">
+              <path class="fire-jet fire-jet-2"
+                    d="M0 0 C-6.5 -7.3 -5.4 -15.7 0 -24 C5.4 -15.7 6.5 -7.3 0 0 Z"/>
+            </g>
+            <g transform="translate(50 38)">
+              <path class="fire-jet fire-jet-3"
+                    d="M0 0 C-8.1 -9.5 -6.8 -19.7 0 -29.5 C6.8 -19.7 8.1 -9.5 0 0 Z"/>
+            </g>
+          </g>
+          <g fill="#FFDE17">
+            <g transform="translate(33 74)">
+              <path class="fire-jet fire-jet-4"
+                    d="M0 0 C-4.6 -5.4 -3.8 -11.6 0 -17.5 C3.8 -11.6 4.6 -5.4 0 0 Z"/>
+            </g>
+            <g transform="translate(69 70)">
+              <path class="fire-jet fire-jet-5"
+                    d="M0 0 C-4.1 -4.9 -3.2 -10.5 0 -16.2 C3.2 -10.5 4.1 -4.9 0 0 Z"/>
+            </g>
+          </g>
+        </g>
+
+        <g fill="#F26522">
+          <circle class="fire-spark" cx="45" cy="36" r="1.8"/>
+          <circle class="fire-spark fire-spark-2" cx="56" cy="44" r="1.4"/>
+          <circle class="fire-spark fire-spark-3" cx="50" cy="30" r="1.2" fill="#FFDE17"/>
+        </g>
+
+        </g>
+
+        <g fill="#383630">
+          <ellipse cx="14" cy="111" rx="12.6" ry="9.2" transform="rotate(-12 14 111)"/>
+          <ellipse cx="38" cy="116" rx="15.6" ry="10.6" transform="rotate(-3 38 116)"/>
+          <ellipse cx="64" cy="115" rx="14.6" ry="10.2" transform="rotate(4 64 115)"/>
+          <ellipse cx="87" cy="109" rx="11.8" ry="8.8" transform="rotate(10 87 109)"/>
+        </g>
+        <g fill="#787366" stroke="#383630" stroke-width="1.6">
+          <ellipse cx="14" cy="108" rx="12.6" ry="9.2" transform="rotate(-12 14 108)"/>
+          <ellipse cx="38" cy="113" rx="15.6" ry="10.6" transform="rotate(-3 38 113)"/>
+          <ellipse cx="64" cy="112" rx="14.6" ry="10.2" transform="rotate(4 64 112)"/>
+          <ellipse cx="87" cy="106" rx="11.8" ry="8.8" transform="rotate(10 87 106)"/>
+        </g>
+        <g fill="#DFB967">
+          <ellipse cx="35" cy="107" rx="7.5" ry="3.2" transform="rotate(-6 35 107)"/>
+          <ellipse cx="62" cy="106" rx="6.8" ry="2.9" transform="rotate(3 62 106)"/>
+          <ellipse cx="12" cy="103" rx="5.2" ry="2.4" transform="rotate(-14 12 103)"/>
+          <ellipse cx="88" cy="101" rx="4.6" ry="2.2" transform="rotate(12 88 101)"/>
+        </g>
+
+        <g class="fire-smoke">
+          <ellipse class="smoke-puff smoke-1" cx="47" cy="93" rx="8" ry="6.6" fill="url(#fireSmoke)"/>
+          <ellipse class="smoke-puff smoke-2" cx="53" cy="94" rx="6.4" ry="5.4" fill="url(#fireSmoke)"/>
+          <ellipse class="smoke-puff smoke-3" cx="49" cy="92" rx="9" ry="7.4" fill="url(#fireSmoke)"/>
+          <ellipse class="smoke-puff smoke-4" cx="44" cy="94" rx="5.4" ry="4.6" fill="url(#fireSmoke)"/>
+          <ellipse class="smoke-puff smoke-5" cx="55" cy="93" rx="7.2" ry="6" fill="url(#fireSmoke)"/>
+        </g>
+      </svg>
+      </span>
+    </div>
+
+    <div class="bush1 hotspot decor sheds-leaves">
+      <span class="swell"><img src="illustrations/main/bush1.svg" alt="Bush"></span>
+    </div>
+
+    <div class="bush2 hotspot decor sheds-leaves">
+      <span class="swell"><img src="illustrations/main/bush2.svg" alt="Bush"></span>
+    </div>
+
+    <div class="tent hotspot">
+      <span class="swell"><img src="illustrations/main/tent.svg" alt="Tent"></span>
+      <span class="tag" aria-hidden="true"><span class="tag-card"><span class="tag-word">work-life</span></span></span>
+    </div>
+
+    <div class="backpack hotspot">
+      <span class="swell"><img src="illustrations/main/backpack.svg" alt="Backpack"></span>
+      <span class="tag" aria-hidden="true"><span class="tag-card"><span class="tag-word">expertise</span></span></span>
+    </div>
+
+    <div class="hammock hotspot">
+
+      <svg class="hammock-ropes" viewBox="0 0 287 126" fill="none" aria-hidden="true">
+        <g class="knot-fit knot-l-fit">
+          <g class="knot-l">
+          <path d="M0.500122 26.0599C0.500122 26.0599 8.57085 27.5221 17.695 28.3835C17.695 28.3835 8.82336 30.2048 0.500122 29.6611" stroke="black" stroke-miterlimit="10" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M0.500122 27.9188C0.500122 27.9188 10.4395 30.4217 17.695 30.7072" stroke="black" stroke-miterlimit="10" stroke-linecap="round"/>
+          <path d="M0.500122 32.5658C0.500122 32.5658 10.2445 32.6053 17.695 31.6366" stroke="black" stroke-miterlimit="10" stroke-linecap="round"/>
+          <path d="M0.500122 34.425C0.500122 34.425 9.4891 35.8958 17.695 34.8897" stroke="black" stroke-miterlimit="10" stroke-linecap="round"/>
+          </g>
+        </g>
+
+        <g class="rope-hold rope-l-hold">
+          <g class="rope-l">
+          <path d="M14.5 34.6C14.5 34.6 24.612 65.5287 33.9604 73.462" stroke="black" stroke-miterlimit="10" stroke-linecap="round"/>
+          </g>
+        </g>
+
+        <g class="knot-fit knot-r-fit">
+          <g class="knot-r">
+          <path d="M267.718 0.964726C267.718 0.964726 273.34 0.662141 285.842 0.5C285.842 0.5 278.906 4.29303 267.718 4.68253" stroke="black" stroke-miterlimit="10" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M267.718 6.34808C267.718 6.34808 278.032 11.4266 285.842 10.724" stroke="black" stroke-miterlimit="10" stroke-linecap="round"/>
+          <path d="M267.718 10.2592C267.718 10.2592 277.092 8.67176 285.842 5.61194" stroke="black" stroke-miterlimit="10" stroke-linecap="round"/>
+          <path d="M267.718 12.1181C267.718 12.1181 277.617 11.4953 285.842 8.40033" stroke="black" stroke-miterlimit="10" stroke-linecap="round"/>
+          </g>
+        </g>
+
+        <g class="rope-hold rope-r1-hold">
+          <g class="rope-r1">
+          <path d="M285.842 10.7239C285.842 10.7239 254.527 53.3725 237.046 67.4205" stroke="black" stroke-miterlimit="10" stroke-linecap="round"/>
+          </g>
+        </g>
+        <g class="rope-hold rope-r2-hold">
+          <g class="rope-r2">
+          <path d="M267.718 0.964722C267.718 0.964722 231.138 50.5137 210.655 65.0512" stroke="black" stroke-miterlimit="10" stroke-linecap="round" stroke-linejoin="round"/>
+          </g>
+        </g>
+      </svg>
+
+      <span class="swell"><img src="illustrations/main/hammock.svg" alt="Hammock"></span>
+      <span class="tag" aria-hidden="true"><span class="tag-card"><span class="tag-word">about</span></span></span>
+    </div>
+
+  </div>
+
+  <div class="bee-bubble" id="tutorialBubble">hi stranger! i'm rolands' helper bee. fly me around,
+    and explore this space to learn more about rolands.<span class="bee-note">press <span class="kbd">enter</span> when you're ready</span></div>
+
+  <div class="bee-bubble" id="flowerBubble">are you enjoying the flowers? click on them and customize all as you wish.<span class="bee-note">press <span class="kbd">enter</span> when you're ready</span></div>
+
+  <script>loadLocal('js/scene/room.js');</script>
+
+  <script>loadLocal('js/effects/userflowers.js');</script>
+  <script>loadLocal('js/effects/flowers.js');</script>
+
+  <script>loadLocal('js/scene/hotspots.js');</script>
+
+  <script>loadLocal('js/sky/skybox.js');</script>
+  <script>loadLocal('js/sky/night.js');</script>
+  <script>loadLocal('js/sky/day.js');</script>
+
+  <script>loadLocal('js/effects/shed.js');</script>
+  <script>loadLocal('js/effects/leaves.js');</script>
+  <script>loadLocal('js/effects/needles.js');</script>
+  <script>loadLocal('js/effects/debris.js');</script>
+  <script>loadLocal('js/effects/birds.js');</script>
+
+  <script>
+    /* Each door fades to the colour of where it leads, so the two rooms meet on one. */
+    [
+      { at: '.tent',     to: 'tent.html',     wash: '#AE4A3C' },
+      { at: '.backpack', to: 'backpack.html', wash: '#D3DBFF' },
+      { at: '.hammock',  to: 'closeup.html',  wash: '#96AF11' },
+      { at: '.flowers',  to: 'draw.html',     wash: '#94B700' }
+    ].forEach(function (door) {
+      const el = document.querySelector(door.at);
+      if (!el) return;
+      el.addEventListener('click', function () {
+        Room.enter(door.at, door.to, door.wash);
+      });
+    });
+  </script>
+
+  <script>
+    /* The fire takes the pointer itself: it reacts differently lit and out. */
+    (function () {
+      const fire = document.querySelector('.bonfire');
+      const scene = document.querySelector('.scene');
+      if (!fire) return;
+      let pokeTimer = 0;
+
+      fire.addEventListener('mouseover', () => {
+        fire.classList.add('flaring');
+      });
+
+      fire.addEventListener('mouseout', (e) => {
+      // Moving between two shapes inside the fire is not leaving it.
+        if (e.relatedTarget && fire.contains(e.relatedTarget)) return;
+        fire.classList.remove('flaring');
+      });
+
+      fire.addEventListener('mousedown', () => {
+      // Off then on across a frame, so a second poke restarts the burst.
+        fire.classList.remove('poked');
+        clearTimeout(pokeTimer);
+        requestAnimationFrame(() => {
+          fire.classList.add('poked', 'flaring');
+          pokeTimer = setTimeout(() => fire.classList.remove('poked'), 620);
+        });
+      });
+    })();
+  </script>
+
+  <script>
+    (function () {
+      const TIED_TO = {
+        '.tree2': ['.knot-l', '.rope-l'],
+        '.tree3': ['.knot-r', '.rope-r1', '.rope-r2'],
+      };
+
+      Object.keys(TIED_TO).forEach((treeSel) => {
+        const tree = document.querySelector(treeSel);
+        if (!tree) return;
+        const ropes = TIED_TO[treeSel].map((sel) => document.querySelector(sel)).filter(Boolean);
+        if (!ropes.length) return;
+
+        tree.addEventListener('hotspot:nudge', () => {
+          ropes.forEach((rope) => {
+      // Reflow between off and on, so a second brush restarts it.
+            rope.classList.remove('tugged');
+            void rope.getBoundingClientRect();
+            rope.classList.add('tugged');
+          });
+        });
+
+        ropes.forEach((rope) => {
+          const done = () => rope.classList.remove('tugged');
+          rope.addEventListener('animationend', done);
+          rope.addEventListener('animationcancel', done);
+        });
+      });
+    })();
+  </script>
+
+  <script>
+    /* How far tree3 carries the owl, from the tree's own wobble settings, into --ride-*. */
+    (function () {
+      const tree = document.querySelector('.tree3');
+      const owl = document.querySelector('.owl');
+      if (!tree || !owl) return;
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+      let clearTimer = 0;
+
+      function originOf(el) {
+        const parts = getComputedStyle(el).getPropertyValue('--origin').trim().split(/\s+/);
+        const x = parseFloat(parts[0]);
+        const y = parseFloat(parts[1]);
+        return [isNaN(x) ? 50 : x, isNaN(y) ? 100 : y];
+      }
+
+    // The point an object pivots about, in its parent's coordinates.
+      function anchorOf(el) {
+        const o = originOf(el);
+        return [
+          el.offsetLeft - el.offsetWidth / 2 + (el.offsetWidth * o[0]) / 100,
+          el.offsetTop - el.offsetHeight / 2 + (el.offsetHeight * o[1]) / 100
+        ];
+      }
+
+      function measure() {
+        const pivot = anchorOf(tree);
+        const feet = anchorOf(owl);
+        const dx = feet[0] - pivot[0];
+        const dy = feet[1] - pivot[1];
+
+        const css = getComputedStyle(tree);
+        const grow = parseFloat(css.getPropertyValue('--grow')) || 0;
+        const spreadRaw = parseFloat(css.getPropertyValue('--spread'));
+        const spread = isNaN(spreadRaw) ? grow : spreadRaw;
+        const lean = parseFloat(css.getPropertyValue('--lean')) || 0;
+
+        owl.style.setProperty('--ride-y', (grow * dy).toFixed(2) + 'px');
+        owl.style.setProperty('--ride-xl',
+          (Math.tan((lean * Math.PI) / 180) * dy).toFixed(2) + 'px');
+        owl.style.setProperty('--ride-xd', (spread * dx).toFixed(2) + 'px');
+      }
+
+      tree.addEventListener('hotspot:nudge', function () {
+        if (!document.body.classList.contains('night')) return;
+
+      // The owl may have been dragged since the last brush.
+        measure();
+
+        owl.classList.remove('nudged', 'with-tree');
+        void owl.offsetWidth;
+        owl.classList.add('nudged', 'with-tree');
+
+        clearTimeout(clearTimer);
+        clearTimer = setTimeout(function () {
+          owl.classList.remove('nudged', 'with-tree');
+        }, 2000);
+      });
+
+      owl.addEventListener('animationend', function (e) {
+        if (e.animationName !== 'owl-ride-drag') return;
+        owl.classList.remove('with-tree');
+      });
+    })();
+  </script>
+
+  <script>
+    (function () {
+      'use strict';
+
+      const owl = document.querySelector('.owl');
+      if (!owl) return;
+
+      const frames = owl.querySelectorAll('.owl-frame');
+      if (frames.length < 2) return;
+
+      const CLOSE_MS = 40;
+      const HOLD_MS = 70;
+      const OPEN_MS = 55;
+      const EVERY_MS = 5000;
+      const JITTER_MS = 2200;
+
+    // [frame, how long to hold it] — down through the frames and back.
+      const last = frames.length - 1;
+      const flip = [];
+      for (let i = 1; i <= last; i++) flip.push([i, i === last ? HOLD_MS : CLOSE_MS]);
+      for (let i = last - 1; i>= 0; i--) flip.push([i, OPEN_MS]);
+
+      const STILL = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      let step = -1;
+      let stepTimer = 0;
+      let idleTimer = 0;
+
+      function isNight() { return document.body.classList.contains('night'); }
+
+      function show(i) {
+        for (let f = 0; f < frames.length; f++) frames[f].classList.toggle('on', f === i);
+      }
+
+      function advance() {
+        show(flip[step][0]);
+        const hold = flip[step][1];
+        step++;
+        if (step>= flip.length) {
+          step = -1;
+          return;
+        }
+        stepTimer = setTimeout(advance, hold);
+      }
+
+      function blink() {
+        if (step>= 0) return;
+        step = 0;
+        advance();
+      }
+
+      function armIdle() {
+        clearTimeout(idleTimer);
+        if (STILL || !isNight()) return;
+        idleTimer = setTimeout(function () {
+          if (!document.hidden) blink();
+          armIdle();
+        }, EVERY_MS - JITTER_MS / 2 + Math.random() * JITTER_MS);
+      }
+
+      function stop() {
+        clearTimeout(idleTimer);
+        clearTimeout(stepTimer);
+        step = -1;
+        show(0);
+      }
+
+      let wasNight = null;
+      function sync() {
+        const now = isNight();
+        if (now === wasNight) return;
+        wasNight = now;
+        if (now) armIdle(); else stop();
+      }
+
+      new MutationObserver(sync).observe(document.body, {
+        attributes: true,
+        attributeFilter: ['class']
+      });
+
+      owl.addEventListener('hotspot:nudge', function () {
+        if (!isNight()) return;
+        blink();
+        armIdle();
+      });
+
+      sync();
+    })();
+  </script>
+
+  <script>loadLocal('js/scene/bee.js');</script>
+
+  <script>
+    window.introDone = false;
+
+    Bee.say({
+      bubble: document.getElementById('tutorialBubble'),
+      once: 'seenIntroMain',
+      delay: 1500,
+      onDone: function () { window.introDone = true; }
+    });
+  </script>
+
+  <script>
+    /* The flowers hint, once the pointer has spent long enough over them. Counted in localStorage, so it adds up across visits. */
+    (function () {
+      const HINT_AFTER = 2000;
+      const TICK = 200;
+      const STORE = 'flowerHoverMs';
+      const SEEN = 'seenFlowerHint';
+      const KNOWS = 'seenDrawRoom';    // set by draw.html — no hint needed
+
+      const patch = document.querySelector('.flowers');
+      const bubble = document.getElementById('flowerBubble');
+      if (!patch || !bubble) return;
+
+      let done = false;
+      try {
+        done = localStorage.getItem(SEEN) === '1' || localStorage.getItem(KNOWS) === '1';
+      } catch (err) {       /* storage blocked */ }
+
+      if (done) {
+        bubble.remove();
+        return;
+      }
+
+      function load() {
+        try {
+          return Math.max(0, parseInt(localStorage.getItem(STORE), 10) || 0);
+        } catch (err) {
+          return 0;
+        }
+      }
+
+      function save(ms) {
+        try { localStorage.setItem(STORE, String(ms)); } catch (err) {}
+      }
+
+      let total = load();
+      let timer = 0;
+
+      function counting() { return timer !== 0; }
+
+      function stop() {
+        if (!counting()) return;
+        clearInterval(timer);
+        timer = 0;
+        save(total);
+      }
+
+      function speak() {
+        stop();
+        // The drawing room may have been found in another tab meanwhile.
+        try {
+          if (localStorage.getItem(KNOWS) === '1') { bubble.remove(); return; }
+        } catch (err) {}
+        save(0);
+        Bee.say({ bubble: bubble, once: SEEN, delay: 300 });
+      }
+
+      // Time only counts while the scene is on screen.
+      function tick() {
+        if (!window.introDone ||
+            document.documentElement.classList.contains('bee-talking')) {
+          return;
+        }
+        total += TICK;
+        save(total);
+        if (total>= HINT_AFTER) speak();
+      }
+
+      patch.addEventListener('pointerenter', function () {
+        if (counting()) return;
+        timer = setInterval(tick, TICK);
+      });
+      patch.addEventListener('pointerleave', stop);
+      window.addEventListener('pagehide', stop);
+    })();
+  </script>
+
+</body>
+</html>

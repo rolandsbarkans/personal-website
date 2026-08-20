@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>rolands barkans</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Kosugi+Maru&family=Patrick+Hand+SC&display=swap" rel="stylesheet">
+
+  <script src="js/core/boot.js"></script>
+  <script>
+    loadLocal('js/core/assets.js');
+    loadLocal('js/core/music.js');
+    loadLocal('material/resume_data.js');
+
+    loadLocal('css/scene/room.css');
+    loadLocal('css/scene/hotspots.css');
+    loadLocal('css/scene/bagitem.css');
+    loadLocal('css/scene/bagroom.css');
+    loadLocal('css/scene/bee.css');
+    loadLocal('css/sky/nightrooms.css');
+    loadLocal('js/sky/nightrooms.js');
+    loadLocal('js/scene/nightart.js');
+  </script>
+
+  <style>
+    :root {
+      --bee-font: 'Kosugi Maru';
+      --bee-size: 14px;
+    }
+
+    .notebook-main {
+      position: absolute;
+      left: 65.7%;
+      top: 50%;
+      width: 68.3%;
+      transform: translate(-50%, -50%);
+      container-type: inline-size;
+    }
+
+    .notebook-art {
+      display: block;
+      width: 100%;
+    }
+
+    /* Printed as big as the paper takes, which is why the download button sits on its bottom margin. */
+    .resume-frame {
+      position: absolute;
+      left: 31.3%;
+      top: 49.4%;
+      width: 57.5%;
+      aspect-ratio: 8.5 / 11;
+      transform: translate(-50%, -50%);
+      background: #ffffff;
+      overflow: hidden;
+      z-index: 2;
+    }
+
+    /* The picture is flat, so each header link is an invisible box laid over its words; the numbers come from the PDF's own link annotations. */
+    .resume-link {
+      position: absolute;
+      top: 6.58%;
+      height: 2.4%;
+      display: block;
+      border-radius: 0.4cqw;
+      background: transparent;
+      transition: background 0.16s ease;
+    }
+
+    .resume-link:hover { background: rgba(233, 178, 63, 0.42); }
+
+    /* Not a mailto: clicking copies, as the gmail icon on the protein bar does. */
+    .resume-link.email { cursor: pointer; }
+
+    .resume-link.email    { left: 31.8%; width: 22.8%; }
+    .resume-link.linkedin { left: 68.7%; width: 6.8%; }
+    .resume-link.github   { left: 75.9%; width: 6.0%; }
+
+    /* A click here should close the notebook like a click anywhere else on the paper. */
+    .resume-page {
+      width: 100%;
+      height: 100%;
+      display: block;
+      object-fit: contain;
+      -webkit-user-drag: none;
+      user-select: none;
+      pointer-events: none;
+    }
+
+    /* --lift is the press: the button rises on hover and sinks on click. */
+    .download-button {
+      position: absolute;
+      left: 31.3%;
+      top: 94.6%;
+      width: 16.1%;
+      --lift: 0cqw;
+      transform: translate(-50%, calc(-50% - var(--lift)));
+      background: #fff6dd;
+      border: 2px solid #000;
+      border-radius: 1.5cqw;
+      box-shadow: 0 calc(0.3cqw + var(--lift)) 0 #000;
+      padding: 0;
+      display: block;
+      box-sizing: border-box;
+      text-align: center;
+      text-decoration: none;
+      font-family: 'Patrick Hand SC', cursive;
+      font-size: 1.76cqw;
+      color: #4a3b1f;
+      cursor: pointer;
+      z-index: 2;
+      transition: transform 0.14s ease, box-shadow 0.14s ease;
+    }
+
+    .download-button:hover { --lift: 0.28cqw; }
+    .download-button:active { --lift: -0.2cqw; }
+
+    /* Grows out of where it lies in the bag, not the middle. */
+    .stage.foreground[data-bag-item] {
+      transform-origin: 65.7% 50%;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .download-button { transition: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="scene" data-exit="bag">
+
+    <script>loadLocal('js/scene/bagroom.js');</script>
+
+    <div class="stage foreground" data-bag-item>
+      <div class="notebook-main">
+        <img class="notebook-art" src="illustrations/notebook/notebook.svg" alt="Notebook">
+
+        <div class="resume-frame">
+          <img class="resume-page" src="material/resume_page.png"
+               alt="Rolands Barkans' resume">
+          <span class="resume-link email" role="button" tabindex="0"
+                aria-label="Copy email address"
+                onclick="handleEmailClick()"></span>
+          <a class="resume-link linkedin" target="_blank" rel="noopener noreferrer"
+             href="https://www.linkedin.com/in/rolands-barkans-11411b247"
+             aria-label="LinkedIn"></a>
+          <a class="resume-link github" target="_blank" rel="noopener noreferrer"
+             href="https://github.com/rolandsbarkans"
+             aria-label="GitHub"></a>
+        </div>
+
+        <div class="download-button" onclick="handleDownloadClick()">grab a copy &#8595;</div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>loadLocal('js/scene/room.js');</script>
+  <script>loadLocal('js/scene/hotspots.js');</script>
+  <script>loadLocal('js/scene/bagitem.js');</script>
+
+  <script>loadLocal('js/scene/emailcopy.js');</script>
+
+  <script>
+    function handleEmailClick() {
+      EmailCopy.copy();
+    }
+
+    /* Base64 in material/resume_data.js rather than linked, so the download works from file:// too. */
+    function handleDownloadClick() {
+      const bytes = atob(window.RESUME_PDF_BASE64);
+      const buffer = new Uint8Array(bytes.length);
+      for (let i = 0; i < bytes.length; i++) buffer[i] = bytes.charCodeAt(i);
+      const url = URL.createObjectURL(new Blob([buffer], { type: 'application/pdf' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'Rolands_Barkans_Resume.pdf';
+      link.addEventListener('click', (e) => e.stopPropagation());
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    /* The artwork has a wide transparent margin, so a click near the edge still counts as off it. */
+    const HIT_INSET = { left: 10, right: 10, top: 10, bottom: 10 };
+
+    document.addEventListener('click', (e) => {
+      const scene = document.querySelector('.scene');
+      if (e.target.closest('.back-button, .resume-frame, .download-button, .bee-bubble')) return;
+      const nb = document.querySelector('.notebook-main .notebook-art');
+      if (e.target === nb) {
+        const r = nb.getBoundingClientRect();
+        const x = ((e.clientX - r.left) / r.width) * 100;
+        const y = ((e.clientY - r.top) / r.height) * 100;
+        if (x> HIT_INSET.left && x < 100 - HIT_INSET.right &&
+            y> HIT_INSET.top && y < 100 - HIT_INSET.bottom) return;
+      }
+      bagTransition.toBag();
+    });
+  </script>
+
+  <script>loadLocal('js/scene/bee.js');</script>
+
+</body>
+</html>

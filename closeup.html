@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>rolands barkans</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Yomogi&display=swap" rel="stylesheet">
+
+  <script src="js/core/boot.js"></script>
+  <script>
+    loadLocal('js/core/assets.js');
+    loadLocal('js/core/music.js');
+
+    loadLocal('css/scene/room.css');
+    loadLocal('css/scene/hotspots.css');
+    loadLocal('css/scene/tag.css');
+    loadLocal('css/scene/bee.css');
+    loadLocal('css/sky/nightrooms.css');
+    loadLocal('js/sky/nightrooms.js');
+  </script>
+
+  <style>
+    :root {
+      --wash: #96AF11;
+      --room-night-sky: #2E3604;
+    }
+
+    body {
+      background-color: #96AF11;
+    }
+
+    /* One picture, so it gets its own stage-shaped box. --mouth-* is where the bubble's tail points. */
+    .hammock-wrap {
+      --bg-ar: calc(1512 / 982);
+      --mouth-x: 53.4%;
+      --mouth-y: 34.2%;
+      /* --mouth-x without its unit: calc() cannot turn a percentage into a length. */
+      --mouth-n: 53.4;
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      translate: -50% -50%;
+      width: max(100vw, calc(100vh * var(--bg-ar)));
+      height: max(100vh, calc(100vw / var(--bg-ar)));
+      container-type: inline-size;
+      z-index: 500;
+    }
+
+    .hammock-img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+      cursor: pointer;
+    }
+
+    /* A second drawing rather than a filter: after dark the campfire lights the person, which no dimming gets to. */
+    .hammock-night,
+    .person-night { opacity: 0; }
+
+    html.night .hammock-day,
+    html.night .person-day { opacity: 0; }
+
+    html.night .hammock-night,
+    html.night .person-night { opacity: 1; }
+
+    .person-night {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+    }
+
+    .person-big .swell { position: relative; }
+
+    .person-big {
+      position: absolute;
+      left: 33.7%;
+      top: 53.2%;
+      width: 69.2%;
+      z-index: 510;
+      --spin: 0deg;
+      --grow: 0.03;
+      --lean: 0deg;
+      --tag-y: 14.4%;
+      --tag-x: 57.3%;
+      --tag-tilt: -8.3deg;
+    }
+
+    .airpods-big {
+      position: absolute;
+      left: 87.5%;
+      top: 51.7%;
+      width: 6.9%;
+      z-index: 520;
+      --spin: 0deg;
+      --grow: 0.13;
+      --tag-y: -28.5%;
+      --tag-x: 42.4%;
+      --tag-tilt: 2deg;
+    }
+
+
+    /* The notes sit at z-index 1, so they pass behind the sign at 5. Sized in cqw off the pods. */
+
+    .airpods-big .notes {
+      position: absolute;
+      left: 46%;
+      top: 14%;
+      width: 0;
+      height: 0;
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    .airpods-big .note {
+      position: absolute;
+      left: 0;
+      top: 0;
+      font-size: 42cqw;
+      line-height: 1;
+      color: #14110C;
+      opacity: 0;
+      will-change: transform, opacity;
+    }
+
+    html.night .airpods-big .note { color: #F2E4C6; }
+
+    /* Each note has its own drift, tilt, speed and place in the queue. */
+    .airpods-big .note.n1 { --dx: -46cqw; --rise: -150cqw; --tilt: -16deg; --dur: 2.1s; --delay: 0s;    font-size: 38cqw; }
+    .airpods-big .note.n2 { --dx:  38cqw; --rise: -178cqw; --tilt:  14deg; --dur: 2.4s; --delay: 0.38s; }
+    .airpods-big .note.n3 { --dx: -14cqw; --rise: -196cqw; --tilt:  -8deg; --dur: 2.2s; --delay: 0.82s; }
+    .airpods-big .note.n4 { --dx:  56cqw; --rise: -142cqw; --tilt:  20deg; --dur: 2.6s; --delay: 1.3s;  }
+    .airpods-big .note.n5 { --dx: -60cqw; --rise: -168cqw; --tilt: -22deg; --dur: 2.3s; --delay: 1.7s;  font-size: 36cqw; }
+
+    .airpods-big.lit .note {
+      animation: note-float var(--dur) ease-out var(--delay) infinite;
+    }
+
+    /* Out and back, since a note rising in a straight line reads as a bubble. */
+    @keyframes note-float {
+      0% {
+        opacity: 0;
+        transform: translate(-50%, 0) rotate(0deg) scale(0.45);
+      }
+      14% { opacity: 0.9; }
+      45% {
+        transform: translate(calc(-50% + var(--dx) * 0.85),
+                             calc(var(--rise) * 0.46))
+                   rotate(calc(var(--tilt) * -0.7)) scale(1);
+      }
+      72% { opacity: 0.85; }
+      100% {
+        opacity: 0;
+        transform: translate(calc(-50% + var(--dx) * 0.25), var(--rise))
+                   rotate(var(--tilt)) scale(0.9);
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .airpods-big.lit .note { animation: none; }
+    }
+
+    /* --gap is how far off the mouth the bubble sits, --tail-y where the tail is; the transform-origin is that point, so it opens from the tail. */
+
+    .bio-dim {
+      position: absolute;
+      inset: -100vmax;
+      background: rgba(0, 0, 0, 0.55);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.45s ease;
+      z-index: 700;
+    }
+
+    .bio-dim.visible {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .bio-bubble {
+      --tail-y: 34%;
+      --gap: 3.2vw;
+      /* The closest the bubble may come to the left of the window. */
+      --edge: 4vw;
+      position: absolute;
+      left: var(--mouth-x);
+      top: var(--mouth-y);
+      /* The tail is pinned to the mouth, so the bubble stays off the edge by being narrower. 1cqw is a hundredth of the stage, so nothing here has to know how the stage is sized. */
+      width: min(48vw, 105vh,
+                 calc((var(--mouth-n) - 50) * 1cqw + 50vw
+                      - var(--gap) - var(--edge)));
+      height: auto;
+      container-type: inline-size;
+      transform-origin: calc(100% + var(--gap)) var(--tail-y);
+      transform: translate(calc(-100% - var(--gap)),
+                           calc(-1 * var(--tail-y))) scale(0.04);
+      opacity: 0;
+      visibility: hidden;
+      z-index: 800;
+      transition: transform 0.45s cubic-bezier(0.5, 0, 0.75, 0.4),
+                  opacity 0.3s ease,
+                  visibility 0s linear 0.45s;
+    }
+
+    .bio-bubble.open {
+      transform: translate(calc(-100% - var(--gap)),
+                           calc(-1 * var(--tail-y))) scale(1);
+      opacity: 1;
+      visibility: visible;
+      transition: transform 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+                  opacity 0.25s ease,
+                  visibility 0s;
+    }
+
+    /* Focused on open so Escape works; nothing else can focus it, so the ring is safe to drop here only. */
+    .bio-bubble:focus { outline: none; }
+
+    .bio-paper {
+      position: relative;
+      width: 100%;
+      max-height: 94vh;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      padding: 3.6cqw 4.6cqw 2.8cqw;
+      background: #FFFDF4;
+      border: 0.45cqw solid #3A2A16;
+      border-radius: 3.4cqw 2.4cqw 3.6cqw 2.8cqw / 2.6cqw 3.6cqw 2.4cqw 3.4cqw;
+      box-shadow: 0 0.7cqw 0 #C89A5B,
+                  0 1.4cqw 2.4cqw rgba(45, 30, 10, 0.3);
+      font-family: 'Yomogi', cursive;
+      color: #3A2A16;
+    }
+
+    html.night .bio-paper {
+      box-shadow: 0 0.7cqw 0 #C89A5B,
+                  0 1.4cqw 2.4cqw rgba(10, 12, 30, 0.55),
+                  0 0 3cqw rgba(255, 214, 138, 0.35);
+    }
+
+    .bio-close {
+      position: absolute;
+      top: -1.2cqw;
+      right: -1.2cqw;
+      width: 4.3cqw;
+      height: 4.3cqw;
+      display: grid;
+      place-items: center;
+      padding: 0;
+      border: 0.4cqw solid #3A2A16;
+      border-radius: 50%;
+      background: #fff;
+      color: #3A2A16;
+      cursor: pointer;
+      -webkit-appearance: none;
+      appearance: none;
+      box-shadow: 0 0.45cqw 0 rgba(45, 30, 10, 0.35);
+      transition: transform 0.14s ease, background 0.14s ease;
+      z-index: 3;
+    }
+
+    .bio-close svg { display: block; width: 46%; }
+    .bio-close:hover { transform: scale(1.12); background: #FFE6E0; }
+
+    .bio-close:active {
+      transform: scale(0.96);
+      box-shadow: 0 0.12cqw 0 rgba(45, 30, 10, 0.35);
+    }
+
+    .bio-close:focus-visible {
+      outline: 0.45cqw dashed #A8442F;
+      outline-offset: 0.5cqw;
+    }
+
+    .bio-head {
+      display: flex;
+      align-items: center;
+      gap: 3.2cqw;
+      flex: 0 0 auto;
+    }
+
+    .bio-photo {
+      position: relative;
+      flex: 0 0 auto;
+      width: 17cqw;
+      aspect-ratio: 1;
+      background: #EFE7D2;
+      border: 0.45cqw solid #3A2A16;
+      border-radius: 1.6cqw 1.1cqw 1.7cqw 1.3cqw / 1.2cqw 1.7cqw 1.1cqw 1.6cqw;
+      box-shadow: 0 0.5cqw 0 #C89A5B,
+                  0 1cqw 1.6cqw rgba(45, 30, 10, 0.22);
+      overflow: hidden;
+      transform: rotate(-2.6deg);
+    }
+
+    .bio-photo img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    /* Shown instead of the photo if material/me.jpg is not there. */
+    .bio-photo-empty {
+      display: none;
+      position: absolute;
+      inset: 0;
+      padding: 1.4cqw;
+      box-sizing: border-box;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      font-size: 1.5cqw;
+      line-height: 1.35;
+      color: #7A6144;
+    }
+
+    .bio-photo.no-photo img { display: none; }
+    .bio-photo.no-photo .bio-photo-empty { display: flex; }
+
+    .bio-titles { min-width: 0; }
+
+    .bio-name { margin: 0; font-size: 5cqw; line-height: 1.1; font-weight: 700; }
+
+    /* Under the name, so the header answers who and where before the bio. */
+    .bio-places {
+      margin: 1.1cqw 0 0;
+      font-size: 1.65cqw;
+      line-height: 1.4;
+      color: #7A6144;
+    }
+
+    .bio-places div { display: flex; gap: 0.9cqw; }
+    .bio-places div + div { margin-top: 0.35cqw; }
+    .bio-places dt { flex: 0 0 auto; opacity: 0.7; }
+    .bio-places dd { margin: 0; min-width: 0; text-align: left; }
+    .bio-places .bio-now { color: #A8442F; font-weight: 700; }
+
+    .bio-actions {
+      margin: 2.2cqw 0 0.4cqw;
+      display: flex;
+      justify-content: flex-start;
+    }
+
+    .bio-button {
+      --plank: #EAC68C;
+      --plank-edge: #C89A5B;
+      font-family: 'Yomogi', cursive;
+      font-size: 2.3cqw;
+      line-height: 1;
+      color: #4A2A08;
+      background: var(--plank);
+      border: 0.28cqw solid #5B3511;
+      border-radius: 1em 0.7em 0.9em 0.65em / 0.7em 1em 0.6em 0.85em;
+      box-shadow: 0 0.4em 0 var(--plank-edge),
+                  0 0.75em 1em rgba(45, 30, 10, 0.22);
+      padding: 0.55em 1.1em 0.6em;
+      cursor: pointer;
+      -webkit-appearance: none;
+      appearance: none;
+      transition: transform 0.14s ease, box-shadow 0.14s ease;
+    }
+
+    .bio-button:hover {
+      transform: translateY(-0.12em);
+      box-shadow: 0 0.55em 0 var(--plank-edge),
+                  0 0.9em 1.2em rgba(45, 30, 10, 0.26);
+    }
+
+    .bio-button:active {
+      transform: translateY(0.3em);
+      box-shadow: 0 0.08em 0 var(--plank-edge),
+                  0 0.25em 0.5em rgba(45, 30, 10, 0.22);
+    }
+
+    .bio-button:focus-visible {
+      outline: 0.3em dashed #A8442F;
+      outline-offset: 0.25em;
+    }
+
+    /* Read a page at a time. The wrapper holds the tallest page's height, measured by script, so turning a page never resizes the paper. */
+    .bio-bodywrap {
+      position: relative;
+      flex: 0 1 auto;
+      min-height: 0;
+      margin-top: 3.4cqw;
+      display: flex;
+    }
+
+    .bio-body {
+      flex: 1 1 auto;
+      min-height: var(--page-h, auto);
+      padding-right: 1.4cqw;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(58, 42, 22, 0.35) transparent;
+    }
+
+    .bio-panel { display: none; }
+    .bio-panel.is-on { display: block; }
+
+    .bio-panel.is-on> * {
+      animation: bio-rise 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
+    .bio-panel.is-on> :nth-child(1) { animation-delay: 0.02s; }
+    .bio-panel.is-on> :nth-child(2) { animation-delay: 0.09s; }
+    .bio-panel.is-on> :nth-child(3) { animation-delay: 0.16s; }
+    .bio-panel.is-on> :nth-child(4) { animation-delay: 0.23s; }
+    .bio-panel.is-on> :nth-child(5) { animation-delay: 0.30s; }
+    .bio-panel.is-on> :nth-child(6) { animation-delay: 0.37s; }
+    .bio-panel.is-on> :nth-child(7) { animation-delay: 0.44s; }
+    .bio-panel.is-on> :nth-child(n+8) { animation-delay: 0.51s; }
+
+    @keyframes bio-rise {
+      from { opacity: 0; transform: translateY(1.8cqw); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Dropped once the last line lands: an attached animation keeps the height it rose through in the scrollable area. */
+    .bio-panel.settled> * { animation: none; }
+
+    .bio-lede {
+      margin: 0 0 1.5cqw;
+      font-size: 2.6cqw;
+      line-height: 1.4;
+      color: #A8442F;
+    }
+
+    .bio-p { margin: 0 0 1.2cqw; font-size: 2.15cqw; line-height: 1.58; }
+    .bio-p:last-of-type { margin-bottom: 0; }
+
+    /* Amber for the work, clay for something in the campsite that can be clicked. */
+    .bio-p mark,
+    .bio-lede mark {
+      color: inherit;
+      padding: 0 0.14em;
+      border-radius: 0.2em;
+      background: linear-gradient(rgba(234, 198, 140, 0) 52%,
+                                  rgba(234, 198, 140, 0.85) 52%);
+    }
+
+    .bio-p mark.spot {
+      font-weight: 700;
+      background: linear-gradient(rgba(168, 68, 47, 0) 52%,
+                                  rgba(168, 68, 47, 0.26) 52%);
+    }
+
+        .bio-nav {
+      flex: 0 0 auto;
+      margin-top: 1.7cqw;
+      padding-top: 1.5cqw;
+      border-top: 0.22cqw solid rgba(58, 42, 22, 0.28);
+      display: flex;
+      align-items: center;
+      gap: 2cqw;
+    }
+
+    .bio-step {
+      flex: 0 0 auto;
+      width: 4.6cqw;
+      height: 4.6cqw;
+      display: grid;
+      place-items: center;
+      padding: 0;
+      border: 0.28cqw solid #5B3511;
+      border-radius: 1.4cqw 1cqw 1.3cqw 1.1cqw / 1cqw 1.4cqw 0.9cqw 1.2cqw;
+      background: #EAC68C;
+      color: #4A2A08;
+      cursor: pointer;
+      -webkit-appearance: none;
+      appearance: none;
+      box-shadow: 0 0.45cqw 0 #C89A5B;
+      transition: transform 0.14s ease, box-shadow 0.14s ease, opacity 0.2s ease;
+    }
+
+    .bio-step svg { display: block; width: 48%; }
+    .bio-step:hover:not(:disabled) { transform: translateY(-0.15cqw); }
+
+    .bio-step:active:not(:disabled) {
+      transform: translateY(0.35cqw);
+      box-shadow: 0 0.1cqw 0 #C89A5B;
+    }
+
+    .bio-step:disabled {
+      opacity: 0.32;
+      cursor: default;
+      box-shadow: 0 0.45cqw 0 rgba(200, 154, 91, 0.5);
+    }
+
+    .bio-step:focus-visible {
+      outline: 0.3cqw dashed #A8442F;
+      outline-offset: 0.35cqw;
+    }
+
+    /* Pebbles on the trail: one per page, the current one filled in. */
+    .bio-dots {
+      flex: 1 1 auto;
+      display: flex;
+      align-items: center;
+      gap: 1.3cqw;
+    }
+
+    .bio-dot {
+      width: 1.5cqw;
+      height: 1.5cqw;
+      padding: 0;
+      border: 0.24cqw solid #7A6144;
+      border-radius: 50%;
+      background: transparent;
+      cursor: pointer;
+      -webkit-appearance: none;
+      appearance: none;
+      transition: background 0.2s ease, transform 0.2s ease;
+    }
+
+    .bio-dot:hover { transform: scale(1.2); }
+    .bio-dot.on { background: #A8442F; border-color: #A8442F; }
+
+    .bio-dot:focus-visible {
+      outline: 0.28cqw dashed #A8442F;
+      outline-offset: 0.35cqw;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .bio-bubble,
+      .bio-bubble.open {
+        transition: opacity 0.2s ease, visibility 0s;
+        transform: translate(calc(-100% - var(--gap)),
+                             calc(-1 * var(--tail-y)));
+      }
+      .bio-panel.is-on> * { animation: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="scene" data-exit="main.html" data-door=".hammock">
+
+    <div class="hammock-wrap">
+
+      <img class="hammock-img hammock-day" src="illustrations/closeup/hammock_big.svg" alt="Hammock">
+      <img class="hammock-img hammock-night" src="illustrations/closeup/hammock_big_night.svg" alt="" aria-hidden="true">
+
+      <div class="person-big hotspot" onclick="handlePersonClick()">
+        <span class="swell">
+          <img class="person-frame person-day" src="illustrations/closeup/person_big.svg" alt="Rolands relaxing">
+          <img class="person-frame person-night" src="illustrations/closeup/person_big_night.svg" alt="" aria-hidden="true">
+        </span>
+        <span class="tag" aria-hidden="true"><span class="tag-card"><span class="tag-word">hello</span></span></span>
+      </div>
+
+      <div class="airpods-big hotspot" onclick="handleAirpodsClick(event)">
+        <span class="notes" aria-hidden="true">
+          <span class="note n1">&#9834;</span>
+          <span class="note n2">&#9835;</span>
+          <span class="note n3">&#9833;</span>
+          <span class="note n4">&#9836;</span>
+          <span class="note n5">&#9834;</span>
+        </span>
+        <span class="swell"><img src="illustrations/closeup/airpods_big.svg" alt="AirPods"></span>
+        <span class="tag" aria-hidden="true"><span class="tag-card"><span class="tag-word">now listening</span></span></span>
+      </div>
+
+      <div class="bio-dim" id="bioDim" onclick="closeBio()"></div>
+
+      <div class="bio-bubble" id="bioBubble" role="dialog" aria-modal="true"
+           aria-labelledby="bioName" tabindex="-1">
+        <div class="bio-paper">
+
+          <button class="bio-close" type="button" onclick="closeBio()" aria-label="Close">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M5 5 L19 19 M19 5 L5 19" fill="none" stroke="currentColor"
+                    stroke-width="3.4" stroke-linecap="round"/>
+            </svg>
+          </button>
+
+          <header class="bio-head">
+            <div class="bio-photo" id="bioPhoto">
+              <img src="material/me.jpg" alt="Rolands"
+                   onerror="document.getElementById('bioPhoto').classList.add('no-photo')">
+              <span class="bio-photo-empty">a photo of me goes at<br>material/me.jpg</span>
+            </div>
+
+            <div class="bio-titles">
+              <h2 class="bio-name" id="bioName">Rolands Barkans</h2>
+
+              <dl class="bio-places">
+                <div>
+                  <dt>currently based in</dt>
+                  <dd class="bio-now">Berlin</dd>
+                </div>
+                <div>
+                  <dt>have spent time in</dt>
+                  <dd>Riga, San Francisco, Taipei, Seoul, Buenos Aires, Hyderabad</dd>
+                </div>
+              </dl>
+            </div>
+          </header>
+
+          <div class="bio-bodywrap">
+            <div class="bio-body">
+
+              <section class="bio-panel" data-title="hello">
+                <p class="bio-lede">thanks for visiting my website and following the
+                  helper bee to get to me &lt;3</p>
+
+                <p class="bio-p">my name is rolands. i'm a senior studying  
+                  <mark>data science</mark> at minerva university, though i'm also
+                  interested in <mark>environmental sustainability</mark> and have a soft
+                  spot for <mark>automation</mark>. both, in my opinion, are aimed at
+                  <mark>humans</mark>, making their lives safer and easier.</p>
+              </section>
+
+              <section class="bio-panel" data-title="why a campsite">
+                <p class="bio-p">i chose the theme of my personal website to be
+                  <mark>nature</mark> because i love exploring different corners of the
+                  world on foot, whether that's <mark>hiking</mark> through mountains or
+                  just being present in whatever green space there is. my friends know that i love
+                  <mark>the city</mark> too, for the convenience and social opportunities,
+                  but nature is where i find myself most at peace and i wanted this space
+                  to feel similar.</p>
+              </section>
+
+              <section class="bio-panel" data-title="where to go next">
+                <p class="bio-p">if you haven't already, click around the website to see
+                  where you get. take a look at the <mark class="spot">tent</mark>
+                  to see my computational and environmental <mark>projects</mark> or the
+                  <mark class="spot">compass</mark> that shows my
+                  <mark>expertise</mark>. if anything resonates with you, the
+                  <mark class="spot">contact bars</mark> tell you how to reach me.</p>
+              </section>
+
+              <section class="bio-panel" data-title="one more thing">
+                <p class="bio-p">oh, and don't forget to check out what
+                  <mark>music</mark> i was listening to while building this (click the
+                  <mark class="spot">airpods</mark> in the back). and drop your favorite
+                  <mark>hiking spot</mark> on the map, so i can experience it too!</p>
+
+                <div class="bio-actions">
+                  <button class="bio-button" type="button">suggest a hike</button>
+                </div>
+              </section>
+
+            </div>
+          </div>
+
+          <nav class="bio-nav" aria-label="about me">
+            <button class="bio-step" id="bioPrev" type="button" aria-label="previous">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M15 4 L7 12 L15 20" fill="none" stroke="currentColor"
+                      stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+
+            <div class="bio-dots" id="bioDots" role="tablist"></div>
+
+            <button class="bio-step" id="bioNext" type="button" aria-label="next">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M9 4 L17 12 L9 20" fill="none" stroke="currentColor"
+                      stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+          </nav>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <script>loadLocal('js/scene/room.js');</script>
+  <script>loadLocal('js/scene/hotspots.js');</script>
+
+  <script>
+    const scene = document.querySelector('.scene');
+    const bubble = document.getElementById('bioBubble');
+    const body = bubble.querySelector('.bio-body');
+    const wrap = bubble.querySelector('.bio-bodywrap');
+    const panels = Array.from(bubble.querySelectorAll('.bio-panel'));
+    const prevBtn = document.getElementById('bioPrev');
+    const nextBtn = document.getElementById('bioNext');
+    const dotsBox = document.getElementById('bioDots');
+
+    let page = 0;
+
+    const dots = panels.map(function (panel, i) {
+      const dot = document.createElement('button');
+      dot.type = 'button';
+      dot.className = 'bio-dot';
+      dot.setAttribute('aria-label', panel.dataset.title || 'page ' + (i + 1));
+      dot.addEventListener('click', function () { showPage(i); });
+      dotsBox.appendChild(dot);
+      return dot;
+    });
+
+        /* Measured with every page shown at once; without it the paper, the bubble and the tail all jump on each turn. */
+      // A frame late on purpose: the type is sized in cqw, and a bubble that just became visible has no container query resolved yet.
+    function sizePages() {
+      requestAnimationFrame(function () {
+        wrap.style.setProperty('--page-h', 'auto');
+        panels.forEach(function (p) { p.style.display = 'block'; });
+        const tallest = panels.reduce(function (h, p) {
+          return Math.max(h, p.offsetHeight);
+        }, 0);
+        panels.forEach(function (p) { p.style.display = ''; });
+        wrap.style.setProperty('--page-h', (tallest + 2) + 'px');
+      });
+    }
+
+    function showPage(i, animate) {
+      page = Math.max(0, Math.min(panels.length - 1, i));
+
+      panels.forEach(function (p, n) {
+        p.classList.toggle('is-on', n === page);
+        if (n === page && animate !== false) {
+          p.classList.remove('settled');
+          void p.offsetWidth;
+        } else if (n === page) {
+          p.classList.add('settled');
+        }
+      });
+
+      dots.forEach(function (d, n) { d.classList.toggle('on', n === page); });
+      prevBtn.disabled = page === 0;
+      nextBtn.disabled = page === panels.length - 1;
+
+      body.scrollTop = 0;
+    }
+
+    window.addEventListener('resize', sizePages);
+
+      // A page's real height is only known once the last line has landed.
+    panels.forEach(function (panel) {
+      panel.addEventListener('animationend', function (e) {
+        if (e.target !== this.lastElementChild) return;
+        this.classList.add('settled');
+      });
+    });
+
+    prevBtn.addEventListener('click', function () { showPage(page - 1); });
+    nextBtn.addEventListener('click', function () { showPage(page + 1); });
+
+    function openBio() {
+      // modal-open also stops hotspots.js lighting things up behind the page.
+      scene.classList.add('modal-open');
+      document.getElementById('bioDim').classList.add('visible');
+      bubble.classList.add('open');
+      sizePages();
+      showPage(0);
+      bubble.focus({ preventScroll: true });
+    }
+
+    function closeBio() {
+      scene.classList.remove('modal-open');
+      document.getElementById('bioDim').classList.remove('visible');
+      bubble.classList.remove('open');
+    }
+
+    function handlePersonClick() {
+      openBio();
+      // The bio is over the pointer, so drop the swell and the sign now rather than waiting for it to move.
+      if (window.Hotspots) window.Hotspots.release();
+    }
+
+    function handleAirpodsClick(e) {
+      // ...or music.js's own document click closes the card again at once.
+      if (e) e.stopPropagation();
+      window.CampsiteMusic.openPlayer(document.querySelector('.airpods-big'));
+    }
+
+    document.addEventListener('keydown', function (e) {
+      if (!bubble.classList.contains('open')) return;
+      if (e.key === 'Escape') { closeBio(); return; }
+      if (e.key === 'ArrowRight') { e.preventDefault(); showPage(page + 1); }
+      if (e.key === 'ArrowLeft')  { e.preventDefault(); showPage(page - 1); }
+    });
+  </script>
+
+  <script>loadLocal('js/scene/bee.js');</script>
+
+</body>
+</html>

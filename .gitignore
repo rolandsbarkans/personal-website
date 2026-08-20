@@ -1,0 +1,25 @@
+# macOS
+.DS_Store
+._*
+.Spotlight-V100
+.Trashes
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+
+# Editors and tooling
+.vscode/
+.idea/
+.claude/
+*.log
+
+# Secrets
+.env
+.env.*
+*.pem
+*.key
+
+# Notes to Claude, kept local
+CLAUDE.md

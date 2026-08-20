@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>rolands barkans</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Yomogi&display=swap" rel="stylesheet">
+  <script src="js/core/boot.js"></script>
+  <script>
+    // Set before anything paints, so the wash is the right colour on the first frame.
+    if (sessionStorage.getItem('bagArriveFromItem') === '1') {
+      document.documentElement.classList.add('from-item');
+    }
+
+    loadLocal('js/core/assets.js');
+    loadLocal('js/core/music.js');
+
+    loadLocal('css/scene/room.css');
+    loadLocal('css/scene/hotspots.css');
+    loadLocal('css/scene/tag.css');
+    loadLocal('css/scene/bagitem.css');
+    loadLocal('css/scene/bee.css');
+    loadLocal('css/sky/nightrooms.css');
+    loadLocal('js/sky/nightrooms.js');
+    loadLocal('js/scene/nightart.js');
+  </script>
+
+  <style>
+    :root {
+      --wash: #D3DBFF;
+    }
+
+    body {
+      background-color: #D3DBFF;
+    }
+
+    /* Coming back from one of the things, the room opens under that thing's dark, so both ends of the fade meet on one colour. */
+    html.from-item body::before {
+      background: rgb(32, 23, 17);
+    }
+
+    .notebook-small,
+    .compass-small,
+    .bars-small {
+      position: absolute;
+      --spin: 0deg;
+    }
+
+    .notebook-small {
+      left: 45.5%;
+      top: 61.6%;
+      width: 25.2%;
+      --grow: 0.035;
+      --tag-y: -3.1%;
+      --tag-x: 35.4%;
+      --tag-tilt: -9.9deg;
+    }
+
+    .compass-small {
+      left: 57.8%;
+      top: 79.9%;
+      width: 15.9%;
+      --grow: 0.05;
+      --tag-y: -13.5%;
+      --tag-x: 49.8%;
+      --tag-tilt: 0deg;
+    }
+
+    .bars-small {
+      left: 42.6%;
+      top: 74.3%;
+      width: 19.1%;
+      --grow: 0.055;
+      --tag-y: -11.9%;
+      --tag-x: 73.1%;
+      --tag-tilt: 6.6deg;
+    }
+
+    [data-bag-dim] {
+      background: rgba(0, 0, 0, 0.65);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="scene" data-exit="main.html" data-door=".backpack">
+
+    <div class="stage">
+      <img class="stage-art night-backdrop"
+           src="illustrations/backpack/bag_background.svg"
+           alt="Inside of the backpack">
+
+      <div class="notebook-small hotspot" onclick="handleItemClick('notebook.html')">
+        <span class="swell"><img src="illustrations/backpack/notebook_small.svg" alt="Notebook"></span>
+        <span class="tag" aria-hidden="true"><span class="tag-card"><span class="tag-word">resume</span></span></span>
+      </div>
+
+      <div class="compass-small hotspot" onclick="handleItemClick('compass.html')">
+        <span class="swell"><img src="illustrations/backpack/compass_small.svg"
+             data-night-src="illustrations/backpack/compass_small_night.svg" alt="Compass"></span>
+        <span class="tag" aria-hidden="true"><span class="tag-card"><span class="tag-word">expertise</span></span></span>
+      </div>
+
+      <div class="bars-small hotspot" onclick="handleItemClick('bars.html')">
+        <span class="swell"><img src="illustrations/backpack/bars_small.svg" alt="Protein bars"></span>
+        <span class="tag" aria-hidden="true"><span class="tag-card"><span class="tag-word">contact</span></span></span>
+      </div>
+    </div>
+
+    <div data-bag-dim></div>
+
+  </div>
+
+  <script>loadLocal('js/scene/room.js');</script>
+  <script>loadLocal('js/scene/hotspots.js');</script>
+  <script>loadLocal('js/scene/bagitem.js');</script>
+
+  <script>
+    function handleItemClick(url) {
+      bagTransition.toItem(url);
+    }
+  </script>
+
+  <script>loadLocal('js/scene/bee.js');</script>
+
+</body>
+</html>

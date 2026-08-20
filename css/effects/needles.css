@@ -1,0 +1,70 @@
+/* Pine needles off a brushed tree. Sizes and timings come from js/effects/needles.js. */
+
+.needle {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  width: var(--size);
+  aspect-ratio: 20 / 44;
+  pointer-events: none;
+  z-index: 2;
+  will-change: transform, opacity;
+
+  animation: needle-fall var(--dur) linear var(--delay) forwards;
+}
+
+.needle-sway {
+  display: block;
+  width: 100%;
+  height: 100%;
+  animation: needle-sway var(--swing) ease-in-out var(--delay) infinite alternate;
+}
+
+.needle-tumble {
+  display: block;
+  width: 100%;
+  height: 100%;
+  animation: needle-tumble var(--swing) ease-in-out
+             calc(var(--delay) - var(--swing) / 4) infinite alternate;
+}
+
+.needle-flip {
+  display: block;
+  width: 100%;
+  height: 100%;
+  animation: needle-flip var(--flip) ease-in-out var(--delay) infinite alternate;
+}
+
+.needle svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+@keyframes needle-fall {
+  0%   { transform: translate(0, 0); opacity: 0; }
+  6%   { transform: translate(calc(var(--drift) * 0.04), calc(var(--fall) * 0.02)); opacity: 1; }
+  30%  { transform: translate(calc(var(--drift) * 0.28), calc(var(--fall) * 0.26)); opacity: 1; }
+  72%  { transform: translate(calc(var(--drift) * 0.72), calc(var(--fall) * 0.70)); opacity: 1; }
+  100% { transform: translate(var(--drift), var(--fall)); opacity: 0; }
+}
+
+@keyframes needle-sway {
+  from { transform: translateX(calc(var(--sway) * -1)); }
+  to   { transform: translateX(var(--sway)); }
+}
+
+@keyframes needle-tumble {
+  from { transform: rotate(calc(var(--tilt) - var(--pitch))); }
+  to   { transform: rotate(calc(var(--tilt) + var(--pitch))); }
+}
+
+@keyframes needle-flip {
+  from { transform: scaleX(1); }
+  to   { transform: scaleX(0.2); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .needle { display: none; }
+}

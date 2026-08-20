@@ -1,0 +1,956 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>rolands barkans</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand+SC&family=Yomogi&display=swap" rel="stylesheet">
+
+  <script src="js/core/boot.js"></script>
+  <script>
+    loadLocal('js/core/assets.js');
+    loadLocal('js/core/music.js');
+    loadLocal('js/data/projects.js');
+
+    loadLocal('css/scene/room.css');
+    loadLocal('css/scene/hotspots.css');
+    loadLocal('css/scene/bagitem.css');
+    loadLocal('css/scene/bee.css');
+
+    // Matched to the tent's, the room on the other side.
+    window.BAG_MS = { dark: 150, rise: 400, beat: 30, out: 170, undim: 280 };
+  </script>
+
+  <style>
+    :root {
+      --wash: #773027;
+
+      /* The pen the map is marked up with — circles, labels, rules and tags. */
+      --ink: #3B6B1B;
+      --ink-deep: #27470F;
+
+      /* Environmental work keeps the map's green; computational work is marked in blue. */
+      --env: var(--ink);
+      --env-deep: var(--ink-deep);
+      --comp: #2A6390;
+      --comp-deep: #17405F;
+      --paper: #DDC7A3;
+      --paper-scrap: #E9DABB;
+      --paper-edge: #A8875A;
+      --pencil: #5C382C;
+    }
+
+    body {
+      background-color: #773027;
+    }
+
+    /* Inside its own layer, so the arrival fade has something of its own to scale. */
+    .map-layer {
+      position: absolute;
+      inset: 0;
+    }
+
+    .map-big {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 115.3%;
+      transform: translate(-50%, -50%);
+    }
+
+        .places { display: contents; }
+
+    .place {
+      position: absolute;
+      --grow: 0.1;
+      --lean: 0deg;
+      /* A ring has no ground to stand on, so it swells from its middle. */
+      --origin: 50% 50%;
+    }
+
+    .place svg {
+      display: block;
+      width: 100%;
+      height: auto;
+      overflow: visible;
+    }
+
+    .place-ring {
+      fill: none;
+      stroke: var(--ink);
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .place-dot { fill: var(--ink); }
+
+    /* One count per field, at opposite ends of the same circle. Never takes the pointer. */
+    .place-badges {
+      position: absolute;
+      inset: 0;
+      font-size: 28cqw;
+      pointer-events: none;
+    }
+
+    /* Both sit on the pen stroke, at matching points above and below. */
+    .place-badge {
+      position: absolute;
+      left: 86%;
+      top: 10%;
+      transform: translate(-50%, -50%) rotate(-8deg);
+      min-width: 1.55em;
+      height: 1.55em;
+      display: grid;
+      place-items: center;
+      box-sizing: border-box;
+      padding: 0 0.2em;
+      border-radius: 50% 48% 52% 47% / 47% 52% 48% 53%;
+      background: var(--env);
+      color: var(--paper);
+      font-family: 'Yomogi', cursive;
+      font-weight: 700;
+      font-size: 1em;
+      line-height: 1;
+    }
+
+    .place-badge.second {
+      top: 90%;
+      transform: translate(-50%, -50%) rotate(6deg);
+    }
+
+    .place-badge.comp { background: var(--comp); }
+
+    /* A label can lie across a neighbouring circle, so the pointed-at one is lifted above the rest. */
+    .places:has(.hotspot.lit) .place:not(.lit) {
+      filter: opacity(0.3);
+      transition: filter 0.2s ease;
+    }
+
+    .place.lit { z-index: 260; }
+
+    /* Written straight on the paper, so it is outlined in parchment to stay legible over the drawing. */
+    .tag {
+      position: absolute;
+      left: var(--tag-x, 50%);
+      top: var(--tag-y, -0.2vw);
+      transform: translate(-50%, calc(-100% + 0.4em)) rotate(var(--tag-tilt, -3deg));
+      transform-origin: 50% 100%;
+      opacity: 0;
+      pointer-events: none;
+      white-space: nowrap;
+      font-family: 'Yomogi', cursive;
+      font-size: 1.35vw;
+      font-weight: 700;
+      line-height: 1;
+      color: var(--ink-deep);
+      filter:
+        drop-shadow( 0.045em 0 0 var(--paper))
+        drop-shadow(-0.045em 0 0 var(--paper))
+        drop-shadow(0  0.045em 0 var(--paper))
+        drop-shadow(0 -0.045em 0 var(--paper));
+      transition: opacity 0.14s ease, transform 0.14s ease;
+      z-index: 250;
+    }
+
+    .hotspot.lit .tag {
+      opacity: 1;
+      transform: translate(-50%, -100%) rotate(var(--tag-tilt, -3deg));
+      transition: opacity 0.2s ease 0.02s,
+                  transform 0.34s cubic-bezier(0.22, 0.9, 0.3, 1);
+    }
+
+        /* Sized in cqw off its own width, so scaling it scales the writing with it. */
+    .map-legend {
+      position: absolute;
+      left: 4%;
+      top: 91.9%;
+      width: 15.5%;
+      transform: translate(-50%, -50%) rotate(5.1deg);
+      container-type: inline-size;
+      z-index: 200;
+    }
+
+    .legend-row {
+      --pen: var(--env);
+      --pen-deep: var(--env-deep);
+      display: flex;
+      align-items: center;
+      gap: 4cqw;
+      font-family: 'Yomogi', cursive;
+      font-size: 8cqw;
+      line-height: 1.1;
+      font-weight: 700;
+      color: var(--pen-deep);
+      filter:
+        drop-shadow( 0.045em 0 0 var(--paper))
+        drop-shadow(-0.045em 0 0 var(--paper))
+        drop-shadow(0  0.045em 0 var(--paper))
+        drop-shadow(0 -0.045em 0 var(--paper));
+    }
+
+    .legend-row + .legend-row { margin-top: 3.5cqw; }
+
+    .legend-row.comp {
+      --pen: var(--comp);
+      --pen-deep: var(--comp-deep);
+    }
+
+    /* The same lopsided blob as a real badge, so the row reads as the thing it explains. */
+    .legend-mark {
+      flex: none;
+      width: 1.1em;
+      height: 1.1em;
+      border-radius: 50% 48% 52% 47% / 47% 52% 48% 53%;
+      background: var(--pen);
+      transform: rotate(-6deg);
+    }
+
+        /* inset past the scene, which is only 85% of a window the dim has to cover. */
+    .place-dim {
+      position: absolute;
+      inset: -100vmax;
+      background: rgba(0, 0, 0, 0.55);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.45s ease;
+      z-index: 400;
+    }
+
+    .place-dim.visible {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    /* --from is the vector from the middle of the scene to the circle clicked, so at scale 0 the card sits on the mark. */
+    .place-card {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 76%;
+      max-height: 88%;
+      display: none;
+      flex-direction: column;
+      z-index: 500;
+      container-type: inline-size;
+      opacity: 0;
+      transform:
+        translate(-50%, -50%)
+        translate(var(--from-x, 0px), var(--from-y, 0px))
+        scale(0.04);
+      transition:
+        transform 0.5s cubic-bezier(0.22, 0.9, 0.3, 1),
+        opacity 0.3s ease;
+    }
+
+    .place-card.open { display: flex; }
+
+    /* Focused on open so Escape and the wheel reach it, which is no reason to ring the card. */
+    .place-card:focus { outline: none; }
+
+    .place-card.shown {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+    }
+
+    .place-paper {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      background: var(--paper);
+      /* Four unequal corners: a torn page, not a dialog box. */
+      border-radius: 1.8cqw 1.15cqw 2.13cqw 1.31cqw / 1.31cqw 2.13cqw 1.15cqw 1.97cqw;
+      border: 0.29cqw solid var(--paper-edge);
+      box-shadow: 0 1.31cqw 2.46cqw rgba(30, 18, 8, 0.45);
+      padding: 2.79cqw 2.95cqw 2.46cqw;
+    }
+
+    .place-head { flex: none; }
+
+    .place-name {
+      font-family: 'Patrick Hand SC', cursive;
+      font-size: 4.59cqw;
+      line-height: 1.05;
+      color: var(--ink-deep);
+      margin: 0;
+      padding-right: 5.74cqw;
+    }
+
+    .place-rule {
+      display: block;
+      width: 100%;
+      height: 0.98cqw;
+      margin: 1.15cqw 0 2.13cqw;
+      overflow: visible;
+    }
+
+    .place-rule path {
+      fill: none;
+      stroke: var(--ink);
+      stroke-width: 2.2;
+      stroke-linecap: round;
+      opacity: 0.85;
+    }
+
+    .place-body {
+      display: grid;
+      gap: 1.97cqw;
+      overflow-y: auto;
+      min-height: 0;
+      padding: 0.33cqw 0.33cqw 0.49cqw;
+      margin: -0.33cqw;
+      scrollbar-width: thin;
+      scrollbar-color: var(--paper-edge) transparent;
+    }
+
+    .place-body.cols-1 { grid-template-columns: 1fr; }
+    .place-body.cols-2 { grid-template-columns: 1fr 1fr; }
+
+        /* A scrap carries its field's pen in --pen; everything on it reads from there. */
+    .proj {
+      --pen: var(--env);
+      --pen-deep: var(--env-deep);
+      display: flex;
+      flex-direction: column;
+      background: var(--paper-scrap);
+      border: 0.23cqw solid color-mix(in srgb, var(--pen) 40%, var(--paper-edge));
+      border-radius: 1.31cqw 0.82cqw 1.48cqw 0.98cqw / 0.9cqw 1.48cqw 0.82cqw 1.39cqw;
+      box-shadow: 0 0.41cqw 0.9cqw rgba(45, 30, 10, 0.16);
+      padding: 1.97cqw 1.97cqw 1.8cqw;
+      /* --tilt alternates, so the scraps look laid down rather than set. */
+      transform: rotate(var(--tilt, 0deg));
+    }
+
+    .proj[hidden] { display: none; }
+
+    .proj.comp {
+      --pen: var(--comp);
+      --pen-deep: var(--comp-deep);
+    }
+
+    /* Dropped by position, not vertical-align: sub, or a formula stretches its line. */
+    .proj sub {
+      font-size: 0.68em;
+      vertical-align: baseline;
+      position: relative;
+      bottom: -0.16em;
+    }
+
+    .proj-title {
+      font-family: 'Patrick Hand SC', cursive;
+      font-size: 2.95cqw;
+      line-height: 1.1;
+      color: var(--pen-deep);
+      margin: 0;
+    }
+
+    .proj-year {
+      font-family: 'Yomogi', cursive;
+      font-size: 1.48cqw;
+      color: var(--pencil);
+      opacity: 0.7;
+      margin-top: 0.33cqw;
+    }
+
+    .proj-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.66cqw;
+      margin-top: 1.15cqw;
+    }
+
+    /* Whatever words projects.js gives: nothing here knows them in advance. */
+    .proj-tag {
+      font-family: 'Yomogi', cursive;
+      font-size: 1.31cqw;
+      line-height: 1;
+      color: var(--pen-deep);
+      background: color-mix(in srgb, var(--pen) 13%, transparent);
+      border: 0.13cqw solid var(--pen);
+      border-radius: 1em 0.6em 0.9em 0.55em / 0.6em 1em 0.5em 0.85em;
+      padding: 0.57cqw 0.98cqw;
+      white-space: nowrap;
+    }
+
+    .proj-text {
+      font-family: 'Yomogi', cursive;
+      font-size: 1.56cqw;
+      line-height: 1.55;
+      color: var(--pencil);
+      margin: 1.48cqw 0 0;
+    }
+
+    /* Pushed down so every scrap's buttons line up with its neighbour's. */
+    .proj-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.98cqw;
+      margin-top: auto;
+      padding-top: 1.64cqw;
+    }
+
+    .proj-link {
+      --plank: #EAC68C;
+      --plank-edge: #C89A5B;
+      display: block;
+      font-family: 'Yomogi', cursive;
+      font-size: 1.43cqw;
+      line-height: 1;
+      color: #4A2A08;
+      text-decoration: none;
+      background: var(--plank);
+      border: 0.2cqw solid #5B3511;
+      border-radius: 1em 0.7em 0.9em 0.65em / 0.7em 1em 0.6em 0.85em;
+      box-shadow: 0 0.25cqw 0 var(--plank-edge);
+      padding: 0.9cqw 1.8cqw;
+      cursor: pointer;
+      transition: transform 0.14s ease, box-shadow 0.14s ease;
+    }
+
+    .proj-link:hover {
+      transform: translateY(-0.12cqw);
+      box-shadow: 0 0.37cqw 0 var(--plank-edge);
+    }
+
+    .proj-link:active {
+      transform: translateY(0.2cqw);
+      box-shadow: 0 0.04cqw 0 var(--plank-edge);
+    }
+
+        .place-filter {
+      flex: none;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 2.2cqw;
+      /* No margin, or it reads as a gap while the pile is scrolled part way. */
+      margin-top: 0;
+      padding-top: 1.2cqw;
+      border-top: 0.16cqw dashed color-mix(in srgb, var(--paper-edge) 70%, transparent);
+    }
+
+    .filt {
+      --pen: var(--env);
+      --pen-deep: var(--env-deep);
+      display: flex;
+      align-items: center;
+      gap: 0.7cqw;
+      font-family: 'Yomogi', cursive;
+      font-size: 1.35cqw;
+      line-height: 1;
+      color: var(--pencil);
+      cursor: pointer;
+      user-select: none;
+      opacity: 0.55;
+      transition: opacity 0.14s ease;
+    }
+
+    .filt.comp {
+      --pen: var(--comp);
+      --pen-deep: var(--comp-deep);
+    }
+
+    .filt:has(input:checked) {
+      opacity: 1;
+      color: var(--pen-deep);
+    }
+
+    /* The real checkbox is kept for the keyboard, and drawn over. */
+    .filt input {
+      position: absolute;
+      width: 0;
+      height: 0;
+      opacity: 0;
+    }
+
+    .filt-box {
+      flex: none;
+      width: 1.5cqw;
+      height: 1.5cqw;
+      display: grid;
+      place-items: center;
+      border: 0.16cqw solid var(--pen);
+      border-radius: 0.35em 0.2em 0.3em 0.18em / 0.2em 0.35em 0.16em 0.28em;
+      transition: background 0.14s ease;
+    }
+
+    .filt-box svg {
+      width: 76%;
+      opacity: 0;
+      fill: none;
+      stroke: var(--paper);
+      stroke-width: 3.6;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      transition: opacity 0.14s ease;
+    }
+
+    .filt input:checked + .filt-box { background: var(--pen); }
+    .filt input:checked + .filt-box svg { opacity: 1; }
+
+    .filt input:focus-visible + .filt-box {
+      outline: 0.25cqw dashed var(--pen);
+      outline-offset: 0.25cqw;
+    }
+
+    .place-close {
+      position: absolute;
+      top: 1.64cqw;
+      right: 1.64cqw;
+      width: 3.44cqw;
+      height: 3.44cqw;
+      display: grid;
+      place-items: center;
+      padding: 0;
+      border: 0.25cqw solid var(--ink-deep);
+      border-radius: 50%;
+      background: var(--paper-scrap);
+      color: var(--ink-deep);
+      cursor: pointer;
+      -webkit-appearance: none;
+      appearance: none;
+      transition: transform 0.14s ease, background 0.14s ease;
+      z-index: 2;
+    }
+
+    .place-close svg { display: block; width: 44%; }
+    .place-close:hover { transform: scale(1.12); background: #F3E7CC; }
+    .place-close:active { transform: scale(0.96); }
+
+    .place-close:focus-visible {
+      outline: 0.33cqw dashed var(--ink);
+      outline-offset: 0.33cqw;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .place-card { transition: opacity 0.15s ease; }
+      .place-card,
+      .place-card.shown { transform: translate(-50%, -50%) scale(1); }
+      .tag,
+      .hotspot.lit .tag {
+        transition: opacity 0.12s ease;
+        transform: translate(-50%, -100%) rotate(var(--tag-tilt, -3deg));
+      }
+      .proj-link { transition: none; }
+    }
+  </style>
+</head>
+<body class="framed-room">
+
+  <div class="scene framed" data-exit="bag:tent.html">
+    <div class="map-layer" data-bag-item>
+
+      <img class="map-big" data-bag-wait
+           src="illustrations/map/map_big.svg" alt="Trail map">
+
+      <div class="places" id="places"></div>
+
+      <!-- Built by hand rather than from FIELDS: two rows that never change. -->
+      <div class="map-legend">
+        <div class="legend-row comp">
+          <span class="legend-mark"></span>
+          <span>Computational</span>
+        </div>
+
+        <div class="legend-row env">
+          <span class="legend-mark"></span>
+          <span>Environmental</span>
+        </div>
+      </div>
+
+      <div class="place-card" id="placeCard" role="dialog" aria-modal="true"
+           aria-labelledby="placeName" tabindex="-1">
+        <div class="place-paper">
+          <button class="place-close" type="button" aria-label="close this place">
+            <svg viewBox="0 0 20 20" aria-hidden="true">
+              <path d="M4 4 L16 16 M16 4 L4 16" fill="none" stroke="currentColor"
+                    stroke-width="3.4" stroke-linecap="round"/>
+            </svg>
+          </button>
+
+          <div class="place-head">
+            <h2 class="place-name" id="placeName"></h2>
+            <svg class="place-rule" viewBox="0 0 300 6" preserveAspectRatio="none"
+                 aria-hidden="true">
+              <path d="M2 4.2C48 2.4 96 4.6 143 2.8C190 1 244 4 298 2.2"/>
+            </svg>
+          </div>
+
+          <div class="place-body" id="placeBody"></div>
+
+          <div class="place-filter" id="placeFilter"></div>
+        </div>
+      </div>
+
+      <div class="place-dim" id="dimOverlay"></div>
+
+    </div>
+  </div>
+
+  <script>loadLocal('js/scene/room.js');</script>
+
+  <script>
+    /* Six circles, each drawn a little wrong on purpose. d the ring in a 100x100 box, w its stroke width, dot the here-mark, spin a degree or two of lean. */
+    const RINGS = [
+      { d: 'M50.5 11.5C71.8 12.4 89 28.9 88.6 50.2C88.2 71.4 70.9 88.6 49.6 88.4C28.4 88.2 11.4 70.8 11.9 49.5C12.4 28.8 29.4 12.3 50 11.6C53.6 11.5 57.3 12 60.7 13',
+        w: 4.6, dot: [50.4, 49.2, 4.6], spin: -3 },
+      { d: 'M52 13C74.5 11.5 91.5 28 90.5 49C89.5 70.5 70 88 48 87.5C26.5 87 10 69.5 10.5 48.5C11 29 26 13.5 45.5 12.5C50 12.3 54.5 12.7 58.5 13.8',
+        w: 5.4, dot: [49.2, 50.6, 5.1], spin: 4 },
+      { d: 'M49 10.5C69 12 87 30.5 87.5 51.5C88 72 70 89.5 49.5 89.5C29 89.5 12 72.5 12 51.5C12 32 27 13.5 46 10.8C48.6 10.4 51.3 10.4 54 10.8',
+        w: 4.2, dot: [51, 50.2, 4.2], spin: -6 },
+      { d: 'M14 46C15.5 27 30 12.5 50 12C70 11.5 86 26.5 87.5 46C89 66 74.5 85.5 54 87.5C33 89.5 15.5 76 13.7 56C13.3 51.5 13.4 47 14 43.5',
+        w: 5, dot: [50.8, 48.8, 4.8], spin: 2 },
+      { d: 'M53 12.5C74 13.5 90 30 89.5 51C89 71.5 71.5 87.5 51 88C30 88.5 12 72.5 11.5 51.5C11 31.5 27 14.5 47.5 12.5C52 12 56.5 12.3 60.5 13.4C63.5 14.2 66.3 15.4 69 17',
+        w: 4.4, dot: [48.8, 51, 4.4], spin: 7 },
+      { d: 'M50 13C70.5 13 87 29.5 87 50C87 70 71 86.5 51 87C31 87.5 13.5 71.5 13 51.5C12.5 32 28.5 14 48 13.2',
+        w: 5.8, dot: [50.2, 49.6, 5.4], spin: -1 }
+    ];
+
+    const CIRCLE_SIZE = 4.2;   // percent of the scene, unless a place says otherwise
+    const SVG_NS = 'http://www.w3.org/2000/svg';
+
+      // Blue first, so a circle carrying both counts always reads the same way.
+    const FIELDS = [
+      { key: 'comp', label: 'Computational' },
+      { key: 'env', label: 'Environmental' }
+    ];
+
+    function fieldOf(project) {
+      return project.field === 'env' ? 'env' : 'comp';
+    }
+
+    function countIn(projects, key) {
+      return projects.filter(function (p) { return fieldOf(p) === key; }).length;
+    }
+
+        /* Formulae are written plainly in projects.js and the digits dropped here. Listed rather than pattern-matched, or ERA5 and CO2 are treated alike. */
+    const FORMULAE = ['CO2', 'H2O', 'CH4', 'N2O', 'NO2', 'SO2', 'O2', 'N2'];
+    const FORMULA_RE = new RegExp('\\b(?:' +
+      FORMULAE.slice().sort(function (a, b) { return b.length - a.length; })
+        .join('|') + ')\\b', 'g');
+
+    function writeText(el, str) {
+      let at = 0;
+      let m;
+      FORMULA_RE.lastIndex = 0;
+      while ((m = FORMULA_RE.exec(str)) !== null) {
+        if (m.index> at) el.append(str.slice(at, m.index));
+        m[0].split(/(\d+)/).forEach(function (part) {
+          if (!part) return;
+          if (!/^\d+$/.test(part)) { el.append(part); return; }
+          const sub = document.createElement('sub');
+          sub.textContent = part;
+          el.appendChild(sub);
+        });
+        at = m.index + m[0].length;
+      }
+      if (at < str.length) el.append(str.slice(at));
+    }
+
+    const scene = document.querySelector('.scene');
+    const placesBox = document.getElementById('places');
+
+      // Anything the map cannot draw is skipped with a reason rather than silently.
+    const PLACES = (window.PLACES || []).filter(function (p, i) {
+      const why =
+        !p.place ? 'no place name' :
+        !p.at || typeof p.at.left !== 'number' || typeof p.at.top !== 'number'
+          ? 'no at: { left, top }' :
+        !Array.isArray(p.projects) || !p.projects.length ? 'no projects' : null;
+      if (why) {
+        console.warn('projects.js: entry ' + (i + 1) + ' (' +
+          (p.place || 'unnamed') + ') was skipped — ' + why + '.');
+        return false;
+      }
+      return true;
+    });
+
+    if (!window.PLACES) {
+      console.warn('map.html: js/data/projects.js did not load, so the map has ' +
+        'nothing marked on it.');
+    }
+
+    function svgEl(name, attrs) {
+      const el = document.createElementNS(SVG_NS, name);
+      Object.keys(attrs).forEach(function (k) { el.setAttribute(k, attrs[k]); });
+      return el;
+    }
+
+    PLACES.forEach(function (place, i) {
+      const ring = RINGS[((place.ring || i + 1) - 1 + RINGS.length) % RINGS.length];
+
+      const el = document.createElement('div');
+      el.className = 'place-' + (i + 1) + ' place hotspot';
+      el.dataset.place = String(i);
+      el.style.setProperty('--spin', ring.spin + 'deg');
+      el.style.left = place.at.left + '%';
+      el.style.top = place.at.top + '%';
+      el.style.width = (place.size || CIRCLE_SIZE) + '%';
+      el.addEventListener('click', function () { togglePlace(i); });
+
+      const svg = svgEl('svg', { viewBox: '0 0 100 100', 'aria-hidden': 'true' });
+    // A transparent disc, so the whole mark is clickable: hotspots.js hit-tests inline SVG by what is under the pointer, and fill="none" is under nothing.
+      svg.appendChild(svgEl('circle', { cx: 50, cy: 50, r: 47, fill: 'transparent' }));
+      svg.appendChild(svgEl('path', {
+        class: 'place-ring', d: ring.d, 'stroke-width': ring.w
+      }));
+      svg.appendChild(svgEl('circle', {
+        class: 'place-dot', cx: ring.dot[0], cy: ring.dot[1], r: ring.dot[2]
+      }));
+
+      const swell = document.createElement('span');
+      swell.className = 'swell';
+      swell.appendChild(svg);
+      el.appendChild(swell);
+
+      const badges = document.createElement('span');
+      badges.className = 'place-badges';
+      badges.setAttribute('aria-hidden', 'true');
+      FIELDS.forEach(function (f) {
+        const n = countIn(place.projects, f.key);
+        if (!n) return;
+        const badge = document.createElement('span');
+        badge.className = 'place-badge ' + f.key +
+          (badges.children.length ? ' second' : '');
+        badge.textContent = String(n);
+        badges.appendChild(badge);
+      });
+      el.appendChild(badges);
+
+      const tag = document.createElement('span');
+      tag.className = 'tag';
+      tag.setAttribute('aria-hidden', 'true');
+      tag.textContent = place.place;
+      el.appendChild(tag);
+
+      placesBox.appendChild(el);
+    });
+
+    const dimOverlay = document.getElementById('dimOverlay');
+    const card = document.getElementById('placeCard');
+    const cardName = document.getElementById('placeName');
+    const cardBody = document.getElementById('placeBody');
+    const cardFilter = document.getElementById('placeFilter');
+
+    let openPlace = null;
+    let closeTimer = null;
+
+    function placeEl(n) {
+      return placesBox.querySelector('.place[data-place="' + n + '"]');
+    }
+
+      // In the order the buttons are laid out: a live thing to click first.
+    const LINKS = [
+      { field: 'url', label: 'Visit the site' },
+      { field: 'github', label: 'View on GitHub' },
+      { field: 'pdf', label: 'Read the paper' }
+    ];
+
+    function projectBlock(project, i) {
+      const block = document.createElement('article');
+      block.className = 'proj ' + fieldOf(project);
+      block.dataset.field = fieldOf(project);
+      block.style.setProperty('--tilt', (i % 2 ? 0.35 : -0.35) + 'deg');
+
+      const title = document.createElement('h3');
+      title.className = 'proj-title';
+      writeText(title, project.title || 'Untitled');
+      block.appendChild(title);
+
+      if (project.year) {
+        const year = document.createElement('div');
+        year.className = 'proj-year';
+        year.textContent = project.year;
+        block.appendChild(year);
+      }
+
+      const tags = (project.tags || []).filter(Boolean);
+      if (tags.length) {
+        const row = document.createElement('div');
+        row.className = 'proj-tags';
+        tags.forEach(function (name) {
+          const tag = document.createElement('span');
+          tag.className = 'proj-tag';
+          writeText(tag, name);
+          row.appendChild(tag);
+        });
+        block.appendChild(row);
+      }
+
+      if (project.text) {
+        const text = document.createElement('p');
+        text.className = 'proj-text';
+        writeText(text, project.text);
+        block.appendChild(text);
+      }
+
+      const links = document.createElement('div');
+      links.className = 'proj-links';
+      LINKS.forEach(function (kind) {
+        const url = project[kind.field];
+        if (!url) return;
+        const button = document.createElement('a');
+        button.className = 'proj-link';
+        button.textContent = kind.label;
+        button.href = url;
+        button.target = '_blank';
+        button.rel = 'noopener';
+        links.appendChild(button);
+      });
+      if (links.children.length) block.appendChild(links);
+
+      return block;
+    }
+
+    // Which fields the open card is showing. Both, every time one opens.
+    const showing = { comp: true, env: true };
+
+    function buildFilter(fields) {
+      cardFilter.innerHTML = '';
+    // One box per kind of work the place holds, so no empty tick is offered.
+      fields.forEach(function (key) {
+        const field = FIELDS.filter(function (f) { return f.key === key; })[0];
+
+        const label = document.createElement('label');
+        label.className = 'filt ' + key;
+
+        const box = document.createElement('input');
+        box.type = 'checkbox';
+        box.checked = true;
+        box.addEventListener('change', function () {
+      // One tick has to stay down, or the card would show nothing.
+          if (!box.checked && !cardFilter.querySelector('input:checked')) {
+            box.checked = true;
+            return;
+          }
+          showing[key] = box.checked;
+          applyFilter();
+        });
+
+        const mark = document.createElement('span');
+        mark.className = 'filt-box';
+        const tick = svgEl('svg', { viewBox: '0 0 20 20', 'aria-hidden': 'true' });
+        tick.appendChild(svgEl('path', { d: 'M4 10.6C6 12 7.4 13.4 8.6 15.2C10.6 11 13 7.6 16.2 5' }));
+        mark.appendChild(tick);
+
+        const text = document.createElement('span');
+        text.textContent = field.label;
+
+        label.appendChild(box);
+        label.appendChild(mark);
+        label.appendChild(text);
+        cardFilter.appendChild(label);
+      });
+    }
+
+    function applyFilter() {
+      let shown = 0;
+      Array.prototype.forEach.call(cardBody.children, function (block) {
+        const on = showing[block.dataset.field];
+        block.hidden = !on;
+        if (on) shown++;
+      });
+      cardBody.className = 'place-body cols-' + (shown> 1 ? 2 : 1);
+      cardBody.scrollTop = 0;
+    }
+
+    function fill(n) {
+      const place = PLACES[n];
+      const projects = place.projects;
+
+      cardName.textContent = place.place;
+
+      showing.comp = true;
+      showing.env = true;
+      buildFilter(FIELDS.map(function (f) { return f.key; })
+        .filter(function (key) { return countIn(projects, key); }));
+
+      cardBody.innerHTML = '';
+      projects.forEach(function (project, i) {
+        cardBody.appendChild(projectBlock(project, i));
+      });
+      applyFilter();
+    }
+
+    function openCardAt(n) {
+      const el = placeEl(n);
+      if (!el) return;
+
+      const sr = scene.getBoundingClientRect();
+      const cr = el.getBoundingClientRect();
+      card.style.setProperty('--from-x',
+        (cr.left + cr.width / 2 - sr.left - sr.width / 2).toFixed(1) + 'px');
+      card.style.setProperty('--from-y',
+        (cr.top + cr.height / 2 - sr.top - sr.height / 2).toFixed(1) + 'px');
+
+      fill(n);
+
+    // modal-open also stops hotspots.js lighting circles up behind the card.
+      scene.classList.add('modal-open');
+      clearTimeout(closeTimer);
+      card.classList.add('open');
+      // Two frames, so the browser has a "before" to grow from.
+      void card.offsetWidth;
+      card.classList.add('shown');
+      dimOverlay.classList.add('visible');
+      openPlace = n;
+      card.focus({ preventScroll: true });
+    }
+
+    function closeCard() {
+      if (openPlace === null) return;
+      openPlace = null;
+      scene.classList.remove('modal-open');
+      card.classList.remove('shown');
+      dimOverlay.classList.remove('visible');
+      closeTimer = setTimeout(function () {
+        if (openPlace === null) card.classList.remove('open');
+      }, 520);
+    }
+
+    function togglePlace(n) {
+      if (openPlace === n) { closeCard(); return; }
+      if (openPlace !== null) {
+      // Straight from one mark to another: no shrink in between.
+        openPlace = null;
+        card.classList.remove('shown');
+      }
+      openCardAt(n);
+    }
+
+    card.querySelector('.place-close').addEventListener('click', closeCard);
+    dimOverlay.addEventListener('click', closeCard);
+
+    document.addEventListener('keydown', function (e) {
+      if (e.key !== 'Escape' || openPlace === null) return;
+      closeCard();
+    });
+
+        /* The artwork has a wide margin of nothing, so a click near the edge still counts as off it. */
+    const HIT_INSET = { left: 8, right: 8, top: 6, bottom: 6 };
+
+    document.addEventListener('click', (e) => {
+      if (openPlace !== null) return;
+      if (e.target.closest('.place, .tag, .map-legend, .place-card, .place-dim, .back-button')) return;
+      const mapImg = document.querySelector('.map-big');
+      if (e.target === mapImg) {
+        const r = mapImg.getBoundingClientRect();
+        const x = ((e.clientX - r.left) / r.width) * 100;
+        const y = ((e.clientY - r.top) / r.height) * 100;
+        if (x> HIT_INSET.left && x < 100 - HIT_INSET.right &&
+            y> HIT_INSET.top && y < 100 - HIT_INSET.bottom) return;
+      }
+      bagTransition.toBag('tent.html');
+    });
+  </script>
+
+  <!-- After the circles: hotspots.js collects .hotspot elements once. -->
+  <script>loadLocal('js/scene/hotspots.js');</script>
+  <script>loadLocal('js/scene/bagitem.js');</script>
+
+  <script>loadLocal('js/scene/bee.js');</script>
+
+</body>
+</html>

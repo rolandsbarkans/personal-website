@@ -1,0 +1,289 @@
+/* The campsite after dark, hung off `night` on <body>: .night-layer is the sky, .night-veil the blue with a hole around the fire, .night-glow the fire's warm light. --fire-x / --fire-y follow the campfire. */
+
+:root {
+
+  --sky-x: 46%;
+  --sky-y: 11%;
+  --sky-size: 6.4%;
+
+  --night-depth: 0.5;
+  --night-blue: 10, 19, 48;
+  --fire-pool-x: 40%;
+  --fire-pool-y: 46%;
+  --fire-reach: 26%;
+  --fire-warm: 0.4;
+  --fire-x: 56%;
+  --fire-y: 84%;
+
+  /* How long the switch takes. The campfire reads these too, so the light and the flame move together. */
+  --to-night: 1.5s;
+  --to-day: 2.9s;
+}
+
+body {
+  transition: background-color var(--to-day) ease;
+}
+
+body.night {
+  background-color: rgb(var(--night-blue));
+  transition: background-color var(--to-night) ease;
+}
+
+.night-layer {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--to-day) ease;
+
+  background: linear-gradient(
+    180deg,
+    #050A1E 0%,
+    #0A1330 34%,
+    #142253 62%,
+    #24356B 82%,
+    #33487E 100%
+  );
+}
+
+body.night .night-layer {
+  opacity: 1;
+  transition: opacity var(--to-night) ease;
+}
+
+.night-scenebox {
+  position: fixed;
+  pointer-events: none;
+}
+
+.star {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  width: max(1.1px, var(--size));
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: #FFFDF4;
+  box-shadow: 0 0 0.5vw rgba(255, 253, 240, 0.55);
+  opacity: var(--lit, 0.8);
+  animation: star-twinkle var(--tw, 3s) ease-in-out var(--delay, 0s) infinite alternate;
+}
+
+@keyframes star-twinkle {
+  from { opacity: calc(var(--lit, 0.8) * 0.4); transform: scale(0.85); }
+  to   { opacity: var(--lit, 0.8); transform: scale(1); }
+}
+
+/* The cross-flare on the brightest stars. */
+.star-bright::before,
+.star-bright::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  background: linear-gradient(
+    to right,
+    rgba(255, 253, 240, 0),
+    rgba(255, 253, 240, 0.85),
+    rgba(255, 253, 240, 0)
+  );
+}
+
+.star-bright::before {
+  width: 520%;
+  height: 1px;
+  transform: translate(-50%, -50%);
+}
+
+.star-bright::after {
+  width: 1px;
+  height: 520%;
+  transform: translate(-50%, -50%);
+  background: linear-gradient(
+    to bottom,
+    rgba(255, 253, 240, 0),
+    rgba(255, 253, 240, 0.85),
+    rgba(255, 253, 240, 0)
+  );
+}
+
+.shooting-star {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  width: var(--len, 12vw);
+  height: 2px;
+  transform-origin: 0 50%;
+  rotate: var(--angle, 24deg);
+  background: linear-gradient(
+    to right,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(200, 220, 255, 0.35) 45%,
+    rgba(255, 255, 255, 0.95) 100%
+  );
+  border-radius: 999px;
+  opacity: 0;
+  animation: shoot var(--dur, 1.1s) ease-out forwards;
+}
+
+@keyframes shoot {
+  0%   { opacity: 0; transform: translate(-30%, 0) scaleX(0.4); }
+  22%  { opacity: 1; }
+  70%  { opacity: 1; }
+  100% { opacity: 0; transform: translate(230%, 0) scaleX(1); }
+}
+
+.moon {
+  position: absolute;
+  left: var(--sky-x, 46%);
+  top: var(--sky-y, 11%);
+  width: var(--sky-size, 6.4%);
+  transform: translate(-50%, -50%);
+}
+
+.moon-disc {
+  scale: 1;
+}
+
+@keyframes moon-nudge {
+  0%   { scale: 1; }
+  26%  { scale: 1.085; }
+  58%  { scale: 0.985; }
+  100% { scale: 1; }
+}
+
+.moon.nudged .moon-disc {
+  animation: moon-nudge 0.85s cubic-bezier(0.22, 0.9, 0.3, 1);
+}
+
+.moon svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.night-veil {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--to-day) ease;
+  background: radial-gradient(
+    ellipse var(--fire-pool-x) var(--fire-pool-y) at var(--fire-x) var(--fire-y),
+    rgba(var(--night-blue), 0) 0%,
+    rgba(var(--night-blue), 0.15) 14%,
+    rgba(var(--night-blue), 0.48) 34%,
+    rgba(var(--night-blue), 0.80) 60%,
+    rgba(var(--night-blue), 0.95) 84%,
+    rgba(var(--night-blue), 1) 100%
+  );
+}
+
+body.night .night-veil {
+  opacity: var(--night-depth);
+  transition: opacity var(--to-night) ease;
+}
+
+.night-glow {
+  position: fixed;
+  inset: 0;
+  z-index: 501;
+  pointer-events: none;
+  mix-blend-mode: screen;
+  opacity: 0;
+  transition: opacity var(--to-day) ease;
+  background: radial-gradient(
+    circle var(--fire-reach) at var(--fire-x) var(--fire-y),
+    rgba(255, 173, 74, calc(var(--fire-warm) * 1)) 0%,
+    rgba(255, 140, 52, calc(var(--fire-warm) * 0.52)) 34%,
+    rgba(240, 110, 40, calc(var(--fire-warm) * 0.2)) 62%,
+    rgba(220, 100, 40, 0) 100%
+  );
+}
+
+body.night .night-glow {
+  opacity: 1;
+  transition: opacity var(--to-night) ease;
+  animation: fire-light 3.7s ease-in-out infinite alternate;
+}
+
+@keyframes fire-light {
+  0%   { opacity: 0.88; }
+  40%  { opacity: 1.03; }
+  70%  { opacity: 0.94; }
+  100% { opacity: 1.06; }
+}
+
+body.night-instant,
+body.night-instant .night-layer,
+body.night-instant .night-veil,
+body.night-instant .night-glow,
+body.night-instant .bee-cursor {
+  transition: none !important;
+}
+
+/* The page-change washes go dark too, so leaving at night never flashes daylight. */
+body.night::before,
+body.night::after {
+  background: rgb(var(--night-blue));
+}
+
+body.night .bee-cursor {
+  filter: drop-shadow(0 0 6px rgba(255, 214, 120, 0.85))
+          drop-shadow(0 0 14px rgba(255, 190, 80, 0.45));
+  transition: filter 0.8s ease;
+}
+
+body.night .pollen {
+  box-shadow: 0 0 5px rgba(255, 220, 140, 0.8);
+}
+
+body.night .tag-card {
+  color: #4A2A08;
+  background: #F7E3B0;
+  border-color: #6A3F16;
+  box-shadow: 0 0.16em 0 #D2A868,
+              0 0.3em 0.45em rgba(10, 12, 30, 0.5),
+              0 0 1.2em rgba(255, 214, 138, 0.6);
+}
+
+/* A lantern over the sign being shown, so the veil does not flatten it to grey. */
+.sign-light {
+  position: fixed;
+  inset: 0;
+  z-index: 502;
+  pointer-events: none;
+  opacity: 0;
+  mix-blend-mode: screen;
+  transition: opacity 0.22s ease;
+  background: radial-gradient(
+    ellipse var(--sign-w, 8%) var(--sign-h, 6%) at var(--sign-x, 50%) var(--sign-y, 50%),
+    rgba(240, 178, 96, 0.34) 0%,
+    rgba(236, 166, 88, 0.17) 52%,
+    rgba(232, 158, 84, 0.04) 78%,
+    rgba(232, 158, 84, 0) 100%
+  );
+}
+
+body.night .sign-light.on {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .star {
+    animation: none;
+  }
+  body.night .night-glow {
+    animation: none;
+  }
+  .shooting-star {
+    display: none;
+  }
+
+  .moon.nudged .moon-disc {
+    animation: none;
+  }
+}

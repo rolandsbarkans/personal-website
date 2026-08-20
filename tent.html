@@ -1,0 +1,989 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>rolands barkans</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cutive+Mono&family=Yomogi&display=swap" rel="stylesheet">
+
+  <script src="js/core/boot.js"></script>
+  <script>
+    loadLocal('js/core/assets.js');
+    loadLocal('js/core/music.js');
+
+    loadLocal('css/scene/room.css');
+    loadLocal('css/scene/hotspots.css');
+    loadLocal('css/scene/tag.css');
+    loadLocal('css/scene/bagitem.css');
+    loadLocal('css/scene/bee.css');
+
+    // Quicker than the backpack's: the map is a place rather than a thing picked up.
+    window.BAG_MS = { dark: 150, rise: 400, beat: 30, out: 170, undim: 280 };
+  </script>
+
+  <style>
+    :root {
+      --wash: #AE4A3C;
+    }
+
+    body {
+      background-color: #AE4A3C;
+    }
+
+    /* --zoom-anchor is the point that stays put when the torch pushes in on the wall. */
+    .stage {
+      --zoom-anchor: 50% 0%;
+      --zoom: 1;
+      --pan-x: 0%;
+      --pan-y: 0%;
+      transform-origin: var(--zoom-anchor);
+      transform: scale(var(--zoom)) translate(var(--pan-x), var(--pan-y));
+      transition: transform 0.75s cubic-bezier(0.3, 0.9, 0.35, 1);
+    }
+
+    .scene.torch-on .stage { --zoom: 1.5; }
+
+        .map-small {
+      position: absolute;
+      left: 66.7%;
+      top: 74.7%;
+      width: 34.8%;
+      --grow: 0.04;
+      --spin: 0deg;
+      --tag-y: -6.9%;
+      --tag-x: 44.3%;
+      --tag-tilt: -2.5deg;
+      z-index: 2;
+    }
+
+    .sleeping-bag {
+      position: absolute;
+      left: 22.6%;
+      top: 64%;
+      width: 50.1%;
+      --spin: 0deg;
+      --grow: 0.035;
+    }
+
+    .mat {
+      position: absolute;
+      left: 83.7%;
+      top: 49.9%;
+      width: 32.4%;
+      --spin: 0deg;
+      --grow: 0.05;
+    }
+
+    /* Scenery, not doors: they must not swallow a click meant for the canvas behind. */
+    .sleeping-bag,
+    .mat {
+      pointer-events: none;
+    }
+
+    .mat,
+    .sleeping-bag { z-index: 4; }
+
+    /* The beam is measured in cqw off the torch's own width: --lens-x/y the bulb, --beam-throat the cone's start, --beam-reach the wall (measured live), --pool-* the ellipse, --beam-over the overshoot, --beam-seam the wall/floor fade. */
+
+    .torch {
+      position: absolute;
+      left: 45.9%;
+      top: 59.7%;
+      width: 16.1%;
+      --spin: 0deg;
+      --grow: 0.09;
+      z-index: 3;
+
+      --tag-y: -0.8%;
+      --tag-x: 61.5%;
+      --tag-tilt: 3deg;
+
+      --lens-x: 61.1%;
+      --lens-y: 24.9%;
+      --beam-throat: 20.1cqw;
+      --beam-mouth-tilt: 7.6cqw;
+      --beam-reach: 42.9cqw;
+
+      --pool-w: 220cqw;
+      --pool-h: 220cqw;
+      --pool-cut: 0.62;
+      --pool-shift-x: 14cqw;
+      --pool-gain: 1;
+
+      --beam-aim: 0cqw;
+      --beam-over: 0.18;
+      --beam-seam: 5cqw;
+      --beam-follow: 1;
+
+      /* Written by the script below as the torch moves. */
+      --beam-dx: 0cqw;
+      --beam-dy: 0cqw;
+      --pool-scale: 1;
+
+      --pool-w-live: calc(var(--pool-w) * var(--pool-scale));
+      --pool-h-live: calc(var(--pool-h) * var(--pool-scale));
+      --beam-spread: calc(var(--pool-w-live) * sqrt(1 - var(--pool-cut) * var(--pool-cut)));
+      --beam-aim-x: calc((var(--pool-shift-x) + var(--beam-aim)) * (1 + var(--beam-over)));
+    }
+
+    .torch .swell {
+      position: relative;
+      z-index: 3;
+    }
+
+    .torch .torch-lit {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      opacity: 0;
+    }
+
+    .scene.torch-on .torch .torch-off { opacity: 0; }
+    .scene.torch-on .torch .torch-lit { opacity: 1; }
+
+    /* The signs would sit in the middle of the projection. */
+    .scene.torch-on .hotspot.lit .tag,
+    .scene.torch-on .tag {
+      opacity: 0;
+      transition: opacity 0.14s ease;
+    }
+
+    /* Under the torch's own light and over everything else. */
+    .room-dim {
+      --room-dim: 0.62;
+      position: absolute;
+      inset: 0;
+      background: #0A1230;
+      opacity: 0;
+      pointer-events: none;
+      z-index: 1;
+      transition: opacity 0.5s ease;
+    }
+
+    .scene.torch-on .room-dim {
+      opacity: var(--room-dim);
+      transition: opacity 0.18s ease;
+    }
+
+    .tent-creases { transition: opacity 0.35s ease; }
+    .scene.torch-on .tent-creases { opacity: 0.1; }
+
+    /* Its own stretched layer, so the script can measure the beam's reach against it. */
+    .corner-layer {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+      pointer-events: none;
+    }
+
+    .tent-horizon {
+      --horizon-lit: 0.3;
+      transition: opacity 0.35s ease;
+    }
+
+    .scene.torch-on .tent-horizon { opacity: var(--horizon-lit); }
+
+    /* A soft band, so the two halves of the beam do not meet on a hard edge. */
+    .corner-blend {
+      --corner-y: 42.87%;
+      --corner-blend-h: 4.5%;
+      position: absolute;
+      left: 14.7%;
+      right: 14.7%;
+      top: var(--corner-y);
+      height: var(--corner-blend-h);
+      transform: translateY(-50%);
+      background: linear-gradient(to bottom, #D06050 0%, #993C2F 100%);
+      -webkit-mask-image: linear-gradient(to right,
+        transparent 0%, #000 7%, #000 93%, transparent 100%);
+      mask-image: linear-gradient(to right,
+        transparent 0%, #000 7%, #000 93%, transparent 100%);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.35s ease;
+    }
+
+    .scene.torch-on .corner-blend { opacity: 1; }
+
+    .mat,
+    .map-small,
+    .sleeping-bag { transition: filter 0.5s ease; }
+
+    .scene.torch-on .mat,
+    .scene.torch-on .map-small,
+    .scene.torch-on .sleeping-bag {
+      filter: brightness(0.42) saturate(0.7);
+      transition: filter 0.18s ease;
+    }
+
+    /* Two halves — the pool on the wall and the cone on the floor — each clipped and faded into the other, because one shape could not bend at the corner. */
+    .torch-light-x,
+    .torch-light-y {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    .torch-light-x {
+      z-index: 2;
+      opacity: 0;
+    }
+
+    .scene.torch-on .torch-light-x { opacity: 1; }
+
+    .torch-light-y {
+      transform: translate(var(--beam-dx), var(--beam-dy));
+    }
+
+    .beam-wall,
+    .beam-floor {
+      position: absolute;
+      left: var(--lens-x);
+      top: var(--lens-y);
+      width: 700cqw;
+      height: 500cqw;
+      overflow: hidden;
+      pointer-events: none;
+    }
+
+    .beam-wall {
+      transform: translate(-50%, calc(-100% - var(--beam-reach) + var(--beam-seam)));
+      -webkit-mask-image: linear-gradient(to bottom,
+        #000 calc(100% - 2 * var(--beam-seam)), transparent 100%);
+      mask-image: linear-gradient(to bottom,
+        #000 calc(100% - 2 * var(--beam-seam)), transparent 100%);
+    }
+
+    .beam-floor {
+      transform: translate(-50%, calc(-1 * var(--beam-reach) - var(--beam-seam)));
+      -webkit-mask-image: linear-gradient(to bottom,
+        transparent 0, #000 calc(2 * var(--beam-seam)));
+      mask-image: linear-gradient(to bottom,
+        transparent 0, #000 calc(2 * var(--beam-seam)));
+    }
+
+    .beam-pool {
+      position: absolute;
+      left: calc(50% + var(--pool-shift-x));
+      bottom: calc(var(--pool-h-live) * -0.5 * (1 - var(--pool-cut)) + var(--beam-seam));
+      width: var(--pool-w-live);
+      height: var(--pool-h-live);
+      transform: translateX(-50%);
+      border-radius: 50%;
+      background: radial-gradient(
+        closest-side,
+        rgba(255, 241, 201, 0.92) 0%,
+        rgba(255, 236, 188, 0.80) 38%,
+        rgba(255, 230, 172, 0.50) 66%,
+        rgba(255, 226, 165, 0.18) 87%,
+        rgba(255, 226, 165, 0) 100%
+      );
+      filter: blur(2.4cqw);
+    }
+
+    /* Clipped to a trapezium, carrying a copy of the pool's gradient so the two are one light. */
+    .beam-cone {
+      position: absolute;
+      left: 50%;
+      top: calc(-1 * var(--beam-reach) * var(--beam-over) + var(--beam-seam));
+      width: calc(var(--beam-throat) + (var(--beam-spread) - var(--beam-throat)) * (1 + var(--beam-over)));
+      height: calc(var(--beam-reach) * (1 + var(--beam-over)) + var(--beam-mouth-tilt) / 2);
+      transform: translateX(calc(-50% + var(--beam-aim-x)));
+      clip-path: polygon(
+        calc(50% - var(--beam-aim-x) - var(--beam-throat) / 2) calc(100% - var(--beam-mouth-tilt)),
+        calc(50% - var(--beam-aim-x) + var(--beam-throat) / 2) 100%,
+        100% 0%,
+        0% 0%
+      );
+      background:
+        linear-gradient(
+          to top,
+          rgba(255, 240, 205, 0.55) 0%,
+          rgba(255, 240, 205, 0.18) 35%,
+          rgba(255, 240, 205, 0) 68%
+        ),
+        radial-gradient(
+          calc(var(--pool-w-live) / 2) calc(var(--pool-h-live) / 2)
+          at calc(50% + var(--pool-shift-x) - var(--beam-aim-x))
+             calc(var(--beam-reach) * var(--beam-over) - var(--pool-h-live) * var(--pool-cut) / 2),
+          rgba(255, 241, 201, 0.92) 0%,
+          rgba(255, 236, 188, 0.80) 38%,
+          rgba(255, 230, 172, 0.50) 66%,
+          rgba(255, 226, 165, 0.18) 87%,
+          rgba(255, 226, 165, 0) 100%
+        );
+      filter: blur(2.4cqw);
+    }
+
+    /* Sized as a fraction of the pool, so moving the torch carries the pictures with it. */
+
+    .moments {
+      --moment-fill: 0.65;
+      --moment-drop: -1cqw;
+
+      position: absolute;
+      left: var(--lens-x);
+      top: var(--lens-y);
+      width: calc(var(--pool-w-live) * var(--moment-fill));
+
+      transform:
+        translate(var(--beam-dx), var(--beam-dy))
+        translate(
+          calc(-50% + var(--pool-shift-x)),
+          calc(-50% - var(--beam-reach)
+               - var(--pool-h-live) * var(--pool-cut) / 2
+               + var(--moment-drop)));
+
+      z-index: 2;
+      container-type: inline-size;
+      opacity: 0;
+      transition: opacity 0.22s ease;
+      pointer-events: none;
+    }
+
+    .scene.torch-on .moments {
+      opacity: 1;
+      transition: opacity 0.55s ease 0.12s;
+    }
+
+    /* One photo wide, with the next waiting outside it. */
+    .moment-gate {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      overflow: hidden;
+    }
+
+    .moment-slide {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      --moment-halo: 3.5cqw;
+      padding: var(--moment-halo);
+      box-sizing: border-box;
+      transform: translateX(0);
+    }
+
+    .moment-slide.moment-anim {
+      transition: transform var(--moment-dur, 420ms) cubic-bezier(0.4, 0, 0.2, 1),
+                  opacity var(--moment-dur, 420ms) ease;
+      will-change: transform;
+    }
+
+    .moment-frame {
+      --moment-round: 2.5cqw;
+      --moment-bloom: 3cqw;
+      --moment-bloom-a: 0.5;
+      position: relative;
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      border-radius: var(--moment-round);
+      overflow: hidden;
+      box-shadow: 0 0 var(--moment-bloom)
+                  rgba(255, 240, 205, var(--moment-bloom-a));
+    }
+
+    /* Warmed and softened at the edges, so it reads as light thrown onto canvas. */
+    .moment-photo {
+      --moment-edge: 5%;
+      --moment-edge-a: 0.45;
+      --moment-veil: 0.94;
+
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      opacity: var(--moment-veil);
+      filter: sepia(0.12) brightness(1.05) contrast(0.95) saturate(0.96);
+
+      -webkit-mask-image:
+        linear-gradient(to right,
+          rgba(0, 0, 0, var(--moment-edge-a)) 0,
+          #000 var(--moment-edge),
+          #000 calc(100% - var(--moment-edge)),
+          rgba(0, 0, 0, var(--moment-edge-a)) 100%),
+        linear-gradient(to bottom,
+          rgba(0, 0, 0, var(--moment-edge-a)) 0,
+          #000 var(--moment-edge),
+          #000 calc(100% - var(--moment-edge)),
+          rgba(0, 0, 0, var(--moment-edge-a)) 100%);
+      mask-image:
+        linear-gradient(to right,
+          rgba(0, 0, 0, var(--moment-edge-a)) 0,
+          #000 var(--moment-edge),
+          #000 calc(100% - var(--moment-edge)),
+          rgba(0, 0, 0, var(--moment-edge-a)) 100%),
+        linear-gradient(to bottom,
+          rgba(0, 0, 0, var(--moment-edge-a)) 0,
+          #000 var(--moment-edge),
+          #000 calc(100% - var(--moment-edge)),
+          rgba(0, 0, 0, var(--moment-edge-a)) 100%);
+      -webkit-mask-composite: source-in;
+      mask-composite: intersect;
+    }
+
+    .moment-veil {
+      position: absolute;
+      inset: 0;
+      background: rgba(255, 240, 205, 0.10);
+      pointer-events: none;
+    }
+
+    .moment-stamp {
+      --stamp-inset: 4.5%;
+      --stamp-size: 3.6cqw;
+      --stamp-ink: #FFB25C;
+      --stamp-edge: 0.24cqw;
+      --stamp-glow: 1.3cqw;
+
+      position: absolute;
+      right: var(--stamp-inset);
+      bottom: var(--stamp-inset);
+      text-align: right;
+      line-height: 1.2;
+      pointer-events: none;
+
+      font-family: 'Cutive Mono', 'Courier New', monospace;
+      color: var(--stamp-ink);
+      letter-spacing: 0.08em;
+      font-weight: 700;
+      paint-order: stroke fill;
+      -webkit-text-stroke: var(--stamp-edge) rgba(38, 16, 3, 0.92);
+      text-shadow:
+        0 0.14cqw 0.34cqw rgba(30, 12, 2, 0.55),
+        0 0 var(--stamp-glow) rgba(255, 150, 60, 0.8);
+    }
+
+    .moment-place {
+      font-size: var(--stamp-size);
+      text-transform: uppercase;
+    }
+
+    .moment-when {
+      font-size: calc(var(--stamp-size) * 0.86);
+    }
+
+    .moment-arrow {
+      --arrow-ink: 0.55;
+      --arrow-lit: 0.95;
+      --arrow-weight: 2;
+
+      position: absolute;
+      top: 50%;
+      width: 12cqw;
+      aspect-ratio: 1 / 1;
+      transform: translateY(-50%);
+
+      display: grid;
+      place-items: center;
+      padding: 0;
+      border: 0;
+      background: none;
+      -webkit-appearance: none;
+      appearance: none;
+      box-sizing: border-box;
+
+      color: rgba(255, 255, 255, var(--arrow-ink));
+      cursor: pointer;
+      filter: drop-shadow(0 0.15cqw 0.5cqw rgba(58, 30, 8, 0.55));
+      pointer-events: auto;
+      transition: color 0.18s ease, transform 0.18s ease, opacity 0.18s ease;
+    }
+
+    .moment-arrow svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: var(--arrow-weight);
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .moment-prev { left: -16cqw; }
+    .moment-next { right: -16cqw; }
+
+    .moment-arrow:hover { color: rgba(255, 255, 255, var(--arrow-lit)); }
+    .moment-prev:hover { transform: translate(-8%, -50%); }
+    .moment-next:hover { transform: translate(8%, -50%); }
+    .moment-prev:active { transform: translate(-14%, -50%) scale(0.94); }
+    .moment-next:active { transform: translate(14%, -50%) scale(0.94); }
+
+    .moment-arrow:focus-visible {
+      outline: 0.4cqw solid rgba(255, 255, 255, 0.85);
+      outline-offset: 0.4cqw;
+      border-radius: 1.5cqw;
+      color: rgba(255, 255, 255, var(--arrow-lit));
+    }
+
+    .moment-arrow[disabled] {
+      opacity: 0.45;
+      cursor: default;
+    }
+
+    .moments.moment-single .moment-arrow { display: none; }
+
+        [data-bag-dim] { background: #773027; }
+
+    .scene.map-lean {
+      transform: scale(1.03);
+      transition: transform 0.28s cubic-bezier(0.22, 0.9, 0.35, 1);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .scene.map-lean { transform: none; transition: none; }
+      .moment-slide.moment-anim { transition: opacity 0.12s ease; }
+      .stage,
+      .scene.torch-on .stage {
+        --zoom: 1;
+        --pan-x: 0%;
+        --pan-y: 0%;
+        transition: none;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="scene" data-exit="main.html" data-door=".tent">
+
+    <div class="stage">
+
+      <!-- Inline, because the creases and the corner line are dimmed and measured separately from the canvas. -->
+      <svg class="stage-art" viewBox="0 0 1512 982" fill="none"
+           xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Inside of the tent">
+
+        <path d="M1289.08 420.5L1289.15 420.521L3210.65 1009.52L3210.5 1010.5H-1698L-1698.15 1009.52L223.032 420.521L223.104 420.5H1289.08Z" fill="#993C2F"/>
+        <path d="M1514.84 447.107L1514.84 569.108L1514.84 570.035L1514.06 569.526L1290.06 422.025L1289.81 421.855L1289.84 421.548L1292.84 396.548L1292.91 395.997L1293.45 396.12L1514.45 446.62L1514.84 446.709L1514.84 447.107Z" fill="#D06050" stroke="black"/>
+        <path d="M759 -479.013C763.325 -308.743 789.14 -175.811 867.6 -42.6016C946.07 90.6258 1077.22 224.171 1292.31 395.609L1292.53 395.783L1292.5 396.06L1289.5 421.06L1289.44 421.5H222.557L222.504 421.06L219.504 396.06L219.47 395.777L219.694 395.604C442.832 223.435 578.142 89.5609 657.304 -43.6455C736.452 -176.831 759.495 -309.391 758 -478.995L759 -479.013Z" fill="#D06050"/>
+        <path d="M759 -479.013C763.325 -308.743 789.14 -175.811 867.6 -42.6016C946.07 90.6258 1077.22 224.171 1292.31 395.609L1292.53 395.783L1292.5 396.06L1289.5 421.06L1289.44 421.5" fill="none" stroke="black"/>
+        <path d="M222.557 421.5L222.504 421.06L219.504 396.06L219.47 395.777L219.694 395.604C442.832 223.435 578.142 89.5609 657.304 -43.6455C736.452 -176.831 759.495 -309.391 758 -478.995" fill="none" stroke="black"/>
+        <path d="M-1.49975 446.5L-1.50008 568.5L-1.50045 569.428L-0.724972 568.918L223.275 421.417L223.533 421.247L223.496 420.94L220.497 395.941L220.43 395.389L219.889 395.513L-1.11159 446.012L-1.49997 446.101L-1.49975 446.101L-1.49975 446.5Z" fill="#D06050" stroke="black"/>
+
+        <g class="tent-creases">
+          <path d="M678.772 63.9891C595.899 193.693 536.192 257.239 407.322 355.083" stroke="black"/>
+          <path d="M831.448 41.9836C866.628 115.643 894.563 150.998 955.207 206.217" stroke="black"/>
+          <path d="M941.959 182.274C994.017 237.755 1030.94 267.544 1110.12 318.446" stroke="black"/>
+          <path d="M1106.16 298.039C1132.68 320.159 1149.42 332.062 1183.04 351.876" stroke="black"/>
+          <path d="M682.438 34.2416C672.825 57.4367 666.049 70.1796 650.438 92.2416" stroke="black"/>
+          <line x1="683.536" y1="54.8143" x2="693.536" y2="29.8143" stroke="black"/>
+          <path d="M632.532 349.824C663.744 287.135 677.288 251.678 693.532 187.824" stroke="black"/>
+          <path d="M751.495 15.0672C748.904 61.5343 745.326 87.3624 735.495 133.067" stroke="black"/>
+          <path d="M749.489 126.104C746.336 152.21 743.688 166.72 735.489 192.104" stroke="black"/>
+          <path d="M795.432 114.747C821.759 183.632 843.508 219.225 891.432 278.747" stroke="black"/>
+          <path d="M833.361 290.654C862.336 334.222 882.687 355.07 925.361 386.654" stroke="black"/>
+          <path d="M504.599 382.702C544.299 340.649 564.275 314.46 594.599 261.702" stroke="black"/>
+          <path d="M938.327 255.622C970.511 294.663 991.62 312.699 1034.33 338.622" stroke="black"/>
+          <line x1="684.518" y1="203.868" x2="687.518" y2="192.868" stroke="black"/>
+          <line x1="684.53" y1="258.829" x2="688.53" y2="247.829" stroke="black"/>
+          <line x1="570.626" y1="218.668" x2="578.626" y2="209.668" stroke="black"/>
+          <line x1="914.334" y1="177.628" x2="924.334" y2="186.628" stroke="black"/>
+          <line x1="920.332" y1="190.626" x2="929.332" y2="198.626" stroke="black"/>
+          <line x1="955.37" y1="93.6637" x2="965.37" y2="104.664" stroke="black"/>
+          <line x1="1039.35" y1="184.646" x2="1060.35" y2="205.646" stroke="black"/>
+          <line x1="1049.32" y1="262.618" x2="1062.32" y2="273.618" stroke="black"/>
+          <line x1="1029.26" y1="340.571" x2="1039.26" y2="346.571" stroke="black"/>
+          <line x1="1039.28" y1="336.584" x2="1051.28" y2="344.584" stroke="black"/>
+          <line x1="1175.55" y1="353.706" x2="1189.88" y2="360.388" stroke="black"/>
+        </g>
+
+        <path d="M372.5 408V421" stroke="black"/>
+        <path d="M392.5 406V421" stroke="black"/>
+        <path d="M398.5 413V421" stroke="black"/>
+        <line x1="1.85086" y1="472.523" x2="209.851" y2="407.523" stroke="black"/>
+        <line x1="0.786086" y1="514.548" x2="150.786" y2="443.548" stroke="black"/>
+        <line x1="42.8304" y1="472.53" x2="103.83" y2="450.53" stroke="black"/>
+        <line x1="167.793" y1="435.545" x2="189.793" y2="425.545" stroke="black"/>
+        <line x1="217.842" y1="399.526" x2="220.842" y2="398.526" stroke="black"/>
+        <line x1="215.842" y1="409.526" x2="221.842" y2="407.526" stroke="black"/>
+        <line x1="218.842" y1="412.526" x2="221.842" y2="411.526" stroke="black"/>
+        <line x1="214.824" y1="418.532" x2="222.824" y2="415.532" stroke="black"/>
+        <line x1="219.842" y1="419.526" x2="222.842" y2="418.526" stroke="black"/>
+        <line x1="1297.13" y1="410.518" x2="1484.13" y2="462.518" stroke="black"/>
+        <line x1="1292.12" y1="398.515" x2="1296.12" y2="399.515" stroke="black"/>
+        <line x1="1292.14" y1="402.519" x2="1299.14" y2="404.519" stroke="black"/>
+        <line x1="1291.16" y1="404.526" x2="1297.16" y2="406.526" stroke="black"/>
+        <line x1="1291.16" y1="411.526" x2="1303.16" y2="415.526" stroke="black"/>
+        <line x1="270.5" y1="415" x2="270.5" y2="421" stroke="black"/>
+        <line x1="273.5" y1="413" x2="273.5" y2="421" stroke="black"/>
+        <line x1="279.5" y1="416" x2="279.5" y2="421" stroke="black"/>
+        <line x1="281.5" y1="412" x2="281.5" y2="421" stroke="black"/>
+        <line x1="283.5" y1="418" x2="283.5" y2="421" stroke="black"/>
+        <line x1="307.5" y1="409" x2="307.5" y2="421" stroke="black"/>
+        <line x1="309.5" y1="412" x2="309.5" y2="421" stroke="black"/>
+        <line x1="313.5" y1="419" x2="313.5" y2="421" stroke="black"/>
+        <line x1="316.5" y1="416" x2="316.5" y2="421" stroke="black"/>
+        <line x1="322.5" y1="417" x2="322.5" y2="421" stroke="black"/>
+        <line x1="375.5" y1="413" x2="375.5" y2="421" stroke="black"/>
+        <line x1="-1.23747" y1="533.56" x2="61.7625" y2="499.56" stroke="black"/>
+        <line x1="1478.15" y1="477.524" x2="1512.15" y2="488.524" stroke="black"/>
+        <line x1="1455.12" y1="440.514" x2="1512.12" y2="454.514" stroke="black"/>
+      </svg>
+
+      <div class="corner-blend" aria-hidden="true"></div>
+
+      <!-- Stretched to the stage, so the beam's reach can be measured against it at any window shape. -->
+      <svg class="corner-layer" viewBox="0 0 1512 982" preserveAspectRatio="none"
+           fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <line class="tent-horizon" x1="222.557" y1="421.5" x2="1289.44" y2="421.5" stroke="black"/>
+      </svg>
+
+      <div class="mat hotspot decor">
+        <span class="swell"><img src="illustrations/tent/mat.svg" alt="Rolled sleeping mat"></span>
+      </div>
+
+      <div class="torch hotspot" onclick="handleTorchClick()">
+        <span class="swell">
+          <img class="torch-frame torch-off" src="illustrations/tent/torch1.svg" alt="Torch">
+          <img class="torch-frame torch-lit" src="illustrations/tent/torch2.svg" alt="" aria-hidden="true">
+        </span>
+
+        <span class="tag" aria-hidden="true"><span class="tag-card"><span class="tag-word">moments</span></span></span>
+
+        <div class="torch-light-x" aria-hidden="true">
+          <div class="torch-light-y">
+            <div class="beam-wall"><div class="beam-pool"></div></div>
+            <div class="beam-floor"><div class="beam-cone"></div></div>
+          </div>
+        </div>
+
+        <!-- data-hotspot-pass, or the torch swallows clicks landing off its artwork. -->
+        <div class="moments" id="moments" data-hotspot-pass aria-hidden="true"></div>
+      </div>
+
+      <div class="sleeping-bag hotspot decor">
+        <span class="swell"><img src="illustrations/tent/sleeping_bag.svg" alt="Sleeping bag"></span>
+      </div>
+
+      <div class="map-small hotspot" onclick="handleMapClick()">
+        <span class="swell"><img src="illustrations/tent/map_small.svg" alt="Trail map"></span>
+        <span class="tag" aria-hidden="true"><span class="tag-card"><span class="tag-word">projects</span></span></span>
+      </div>
+
+      <div class="room-dim" aria-hidden="true"></div>
+
+    </div>
+
+    <div data-bag-dim></div>
+
+  </div>
+
+  <script>loadLocal('js/scene/room.js');</script>
+  <script>loadLocal('js/scene/hotspots.js');</script>
+  <script>loadLocal('js/scene/bagitem.js');</script>
+
+  <script>
+    const scene = document.querySelector('.scene');
+
+    function handleTorchClick() {
+      scene.classList.toggle('torch-on');
+      // The torch has moved under the pointer, so let go of the hover until it leaves.
+      if (window.Hotspots) window.Hotspots.release();
+    }
+
+    function torchOff() {
+      if (!scene.classList.contains('torch-on')) return false;
+      scene.classList.remove('torch-on');
+      if (window.Hotspots) window.Hotspots.release();
+      return true;
+    }
+
+    // Clicking anywhere but the torch and its pictures puts it out.
+    document.addEventListener('click', (e) => {
+      if (!scene.classList.contains('torch-on')) return;
+      if (e.target.closest &&
+          e.target.closest('.torch, .moments, .back-button, .bee-bubble')) return;
+      torchOff();
+    });
+
+      // ...including the way out, which puts the torch out before it leaves.
+    Room.beforeExit = torchOff;
+
+    function handleMapClick() {
+      if (scene.classList.contains('torch-on')) return;
+      scene.classList.add('map-lean');
+      bagTransition.toItem('map.html');
+    }
+
+    // The map is the biggest picture on the site; fetch it while the tent is up.
+    (function prefetchMap() {
+      function warm() {
+        const link = document.createElement('link');
+        link.rel = 'prefetch';
+        link.as = 'image';
+        link.href = 'illustrations/map/map_big.svg?v=' + window.CAMPSITE_V;
+        document.head.appendChild(link);
+      }
+      function later() {
+        if (window.requestIdleCallback) requestIdleCallback(warm, { timeout: 3000 });
+        else setTimeout(warm, 1200);
+      }
+      if (document.readyState === 'complete') later();
+      else window.addEventListener('load', later, { once: true });
+    })();
+  </script>
+
+  <script>
+      /* The beam is written in cqw off the torch's resting box, but the torch swells and can be dragged, so the distances are measured live. */
+  (function () {
+    'use strict';
+
+    const scene = document.querySelector('.scene');
+    const torch = document.querySelector('.torch');
+    const glass = torch && torch.querySelector('.torch-off');
+    const horizon = document.querySelector('.tent-horizon');
+    if (!scene || !torch || !glass || !horizon) return;
+
+    const css = getComputedStyle(torch);
+    function knob(name, fallback) {
+      const n = parseFloat(css.getPropertyValue(name));
+      return isNaN(n) ? fallback : n;
+    }
+    const LENS_X = knob('--lens-x', 50) / 100;
+    const LENS_Y = knob('--lens-y', 50) / 100;
+    const OVER = knob('--beam-over', 0.18);
+    const GAIN = knob('--pool-gain', 1);
+    const FOLLOW = knob('--beam-follow', 1);
+
+    const MIN_REACH = 8;
+    const MIN_SCALE = 0.5;
+    const MAX_SCALE = 2.5;
+
+      // Only write a property that actually changed — this runs every frame.
+    const written = {};
+    function set(name, value) {
+      if (written[name] === value) return;
+      written[name] = value;
+      torch.style.setProperty(name, value);
+    }
+
+    function measure() {
+      const rest = torch.getBoundingClientRect();
+      const live = glass.getBoundingClientRect();
+      const line = horizon.getBoundingClientRect();
+      if (!rest.width || !live.width) return;
+
+      const cqw = 100 / rest.width;
+      const corner = (line.top + line.bottom) / 2;
+
+      // How far the swelling bulb has moved from where it rests.
+      const restX = rest.left + rest.width * LENS_X;
+      const restY = rest.top + rest.height * LENS_Y;
+      const dx = (live.left + live.width * LENS_X - restX) * FOLLOW;
+      const dy = (live.top + live.height * LENS_Y - restY) * FOLLOW;
+
+      const restReach = Math.max(MIN_REACH, (restY - corner) * cqw);
+      const reach = Math.max(MIN_REACH, restReach + dy * cqw);
+
+      // Nearer the wall, a wider pool: the light spreads less on the way.
+      let scale = 1;
+      if (restReach> MIN_REACH) {
+        scale = Math.min(MAX_SCALE,
+                Math.max(MIN_SCALE, 1 + (restReach / reach - 1) * GAIN));
+      }
+
+      set('--beam-dx', (dx * cqw).toFixed(2) + 'cqw');
+      set('--beam-dy', (dy * cqw).toFixed(2) + 'cqw');
+      set('--beam-reach', reach.toFixed(2) + 'cqw');
+      set('--pool-scale', scale.toFixed(4));
+      set('--beam-over', (OVER * restReach / reach).toFixed(4));
+    }
+
+    // Measured every frame while the torch is on, and once whenever anything else could have moved it.
+    let running = false;
+
+    function frame() {
+      if (!scene.classList.contains('torch-on')) {
+        running = false;
+        return;
+      }
+      measure();
+      requestAnimationFrame(frame);
+    }
+
+    function sync() {
+      measure();
+      if (running || !scene.classList.contains('torch-on')) return;
+      running = true;
+      requestAnimationFrame(frame);
+    }
+
+    new MutationObserver(sync).observe(scene, {
+      attributes: true,
+      attributeFilter: ['class']
+    });
+
+    window.addEventListener('resize', sync);
+    document.addEventListener('visibilitychange', sync);
+    window.addEventListener('load', sync);
+    sync();
+  })();
+  </script>
+
+  <script>loadLocal('js/data/moments.js');</script>
+
+  <script>
+      /* One photograph on screen, the next sliding in. Content is js/data/moments.js. */
+  (function () {
+    'use strict';
+
+    const box = document.getElementById('moments');
+    if (!box) return;
+
+    const MOMENTS = (window.MOMENTS || []).filter(function (m, i) {
+      if (m && m.src) return true;
+      console.warn('moments.js: entry ' + (i + 1) + ' has no src and was skipped.');
+      return false;
+    });
+
+    if (!MOMENTS.length) {
+      if (!window.MOMENTS) {
+        console.warn('tent.html: js/data/moments.js did not load, so the ' +
+          'torch has no photographs to throw.');
+      }
+      return;
+    }
+
+        /* Shuffled once a visit, so the same run is not thrown every time. */
+    for (let i = MOMENTS.length - 1; i> 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      const swap = MOMENTS[i];
+      MOMENTS[i] = MOMENTS[j];
+      MOMENTS[j] = swap;
+    }
+
+    const TURN_MS = 420;
+    const reduce = window.matchMedia &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    let index = 0;
+    let turning = false;
+
+    function buildSlide(moment) {
+      const slide = document.createElement('div');
+      slide.className = 'moment-slide';
+
+      const frame = document.createElement('div');
+      frame.className = 'moment-frame';
+
+      const photo = document.createElement('img');
+      photo.className = 'moment-photo';
+      photo.src = moment.src;
+      photo.alt = moment.alt ||
+        [moment.place, moment.when].filter(Boolean).join(', ') || '';
+      photo.loading = 'lazy';
+      photo.decoding = 'async';
+      frame.appendChild(photo);
+
+      const veil = document.createElement('div');
+      veil.className = 'moment-veil';
+      frame.appendChild(veil);
+
+      if (moment.place || moment.when) {
+        const stamp = document.createElement('div');
+        stamp.className = 'moment-stamp';
+        [['moment-place', moment.place], ['moment-when', moment.when]]
+          .forEach(function (pair) {
+            if (!pair[1]) return;
+            const line = document.createElement('div');
+            line.className = pair[0];
+            line.textContent = pair[1];
+            stamp.appendChild(line);
+          });
+        frame.appendChild(stamp);
+      }
+
+      slide.appendChild(frame);
+      return slide;
+    }
+
+    function arrow(kind, label, path) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'moment-arrow moment-' + kind;
+      button.title = label;
+      button.setAttribute('aria-label', label);
+      button.innerHTML =
+        '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="' + path + '"/></svg>';
+      return button;
+    }
+
+    const gate = document.createElement('div');
+    gate.className = 'moment-gate';
+
+    const prevBtn = arrow('prev', 'previous moment', 'M14.5 5 L9 12 L14.5 19');
+    const nextBtn = arrow('next', 'next moment', 'M9.5 5 L15 12 L9.5 19');
+
+    box.append(gate, prevBtn, nextBtn);
+    box.removeAttribute('aria-hidden');
+    if (MOMENTS.length < 2) box.classList.add('moment-single');
+
+    gate.appendChild(buildSlide(MOMENTS[0]));
+
+    function turn(dir) {
+      if (turning || MOMENTS.length < 2) return;
+      turning = true;
+      prevBtn.disabled = true;
+      nextBtn.disabled = true;
+
+      index = (index + dir + MOMENTS.length) % MOMENTS.length;
+
+      const leaving = gate.querySelector('.moment-slide');
+      const arriving = buildSlide(MOMENTS[index]);
+
+      arriving.style.transform = 'translateX(' + (dir> 0 ? 100 : -100) + '%)';
+      arriving.style.opacity = '0';
+      gate.appendChild(arriving);
+
+      const ms = reduce ? 0 : TURN_MS;
+      arriving.style.setProperty('--moment-dur', ms + 'ms');
+      if (leaving) leaving.style.setProperty('--moment-dur', ms + 'ms');
+
+      void arriving.offsetHeight;
+
+      arriving.classList.add('moment-anim');
+      arriving.style.transform = 'translateX(0)';
+      arriving.style.opacity = '1';
+      if (leaving) {
+        leaving.classList.add('moment-anim');
+        leaving.style.transform = 'translateX(' + (dir> 0 ? -100 : 100) + '%)';
+        leaving.style.opacity = '0';
+      }
+
+      setTimeout(function () {
+        if (leaving && leaving.parentNode) leaving.remove();
+        arriving.classList.remove('moment-anim');
+        turning = false;
+        prevBtn.disabled = false;
+        nextBtn.disabled = false;
+      }, ms + 40);
+    }
+
+      // stopPropagation, or the click also reaches the put-it-out handler above.
+    function press(button, dir) {
+      button.addEventListener('click', function (e) {
+        e.stopPropagation();
+        turn(dir);
+      });
+      button.addEventListener('pointerdown', function (e) { e.stopPropagation(); });
+    }
+
+    press(nextBtn, 1);
+    press(prevBtn, -1);
+  })();
+  </script>
+
+  <script>loadLocal('js/scene/bee.js');</script>
+
+</body>
+</html>

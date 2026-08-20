@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>rolands barkans</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand+SC&family=Yomogi&display=swap" rel="stylesheet">
+  <script src="js/core/boot.js"></script>
+  <script>
+    loadLocal('js/core/assets.js');
+    loadLocal('js/core/music.js');
+    loadLocal('js/data/expertise.js');
+
+    loadLocal('css/scene/room.css');
+    loadLocal('css/scene/hotspots.css');
+    loadLocal('css/scene/bagitem.css');
+    loadLocal('css/scene/bagroom.css');
+    loadLocal('css/scene/bee.css');
+    loadLocal('css/sky/nightrooms.css');
+    loadLocal('js/sky/nightrooms.js');
+    loadLocal('js/scene/nightart.js');
+  </script>
+
+  <style>
+    /* Sized in vw off the window, not the letterboxed stage, so it stays huge on any screen. */
+    .foreground {
+      position: absolute;
+      inset: 0;
+    }
+
+    /* --face-* is where the dial sits in the artwork; --keep clamps how much must stay on screen. */
+    .compass-big {
+      --ar: calc(1241 / 982);
+      --face-cx: 46.5%;
+      --face-cy: 51.58%;
+      --face-r: 28.75%;
+
+      --size: 78vw;
+      --h: calc(var(--size) / var(--ar));
+      --x: 5%;
+      --y: 50%;
+      --spin: 0deg;
+      --keep: 0.45;
+
+      position: absolute;
+      width: var(--size);
+      left: clamp(calc((var(--keep) - 0.5) * var(--size)),
+                  var(--x),
+                  calc(100% - (var(--keep) - 0.5) * var(--size)));
+      top: clamp(calc((var(--keep) - 0.5) * var(--h)),
+                 var(--y),
+                 calc(100% - (var(--keep) - 0.5) * var(--h)));
+      transform: translate(-50%, -50%) rotate(var(--spin));
+
+      cursor: grab;
+      touch-action: none;
+    }
+
+    body.needle-dragging,
+    body.needle-dragging .compass-big {
+      cursor: grabbing;
+    }
+
+    .compass-art {
+      display: block;
+      width: 100%;
+    }
+
+    .compass-arrow {
+      position: absolute;
+      left: var(--face-cx);
+      top: var(--face-cy);
+      width: 47%;
+      --needle: 0deg;
+      --needle-dur: 420ms;
+      transform: translate(-50%, -50%) rotate(var(--needle));
+      transition: transform var(--needle-dur) cubic-bezier(0.5, 0, 0.2, 1);
+      z-index: 2;
+    }
+
+    .compass-middle {
+      position: absolute;
+      left: var(--face-cx);
+      top: var(--face-cy);
+      width: 5%;
+      transform: translate(-50%, -50%);
+      z-index: 3;
+    }
+
+    .exp-stage {
+      position: absolute;
+      left: 35%;
+      right: 15%;
+      top: 48%;
+      transform: translateY(-50%);
+      display: flex;
+      align-items: center;
+      gap: 2vmin;
+      z-index: 3;
+    }
+
+    .exp-window {
+      flex: 1;
+      position: relative;
+      height: min(44vh, 30vw);
+      background: #FFFDF4;
+      border: 0.32vmin solid #3A2A16;
+      border-radius: 2.4vmin 1.8vmin 2.6vmin 2vmin / 2vmin 2.6vmin 1.8vmin 2.4vmin;
+      box-shadow: 0 0.5vmin 0 #C89A5B,
+                  0 1vmin 1.6vmin rgba(45, 30, 10, 0.22);
+      overflow: hidden;
+    }
+
+    .exp-card {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 1.4vmin;
+      padding: 3vmin 3.4vmin;
+      box-sizing: border-box;
+      font-family: 'Yomogi', cursive;
+      color: #3A2A16;
+      transform: translateY(0);
+    }
+
+    .exp-card.exp-anim {
+      transition: transform var(--exp-dur, 420ms) cubic-bezier(0.4, 0, 0.2, 1),
+                  opacity var(--exp-dur, 420ms) ease;
+      will-change: transform;
+    }
+
+    .exp-title {
+      font-size: 2.4vmin;
+      line-height: 1.15;
+      font-weight: 700;
+      color: #A8442F;
+      padding-bottom: 1vmin;
+      border-bottom: 0.16vmin solid rgba(58, 42, 22, 0.28);
+    }
+
+    .exp-points {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.85vmin;
+      font-size: 1.75vmin;
+      line-height: 1.4;
+
+      /* min-height overrides the flex item's auto minimum, so a long card scrolls instead of pushing the title off. */
+      overflow-y: auto;
+      min-height: 0;
+    }
+
+    /* Drawn rather than a list bullet, so wrapped lines hang off it. */
+    .exp-points li {
+      padding-left: 1.9vmin;
+      position: relative;
+    }
+
+    .exp-points li::before {
+      content: '\2022';
+      position: absolute;
+      left: 0;
+      color: #A8442F;
+    }
+
+    .exp-nav {
+      display: flex;
+      flex-direction: column;
+      gap: 1.4vmin;
+    }
+
+    .exp-btn {
+      --plank: #EAC68C;
+      --plank-edge: #C89A5B;
+      width: 4.6vmin;
+      height: 4.6vmin;
+      display: grid;
+      place-items: center;
+      font-family: 'Yomogi', cursive;
+      font-size: 2.2vmin;
+      line-height: 1;
+      color: #4A2A08;
+      background: var(--plank);
+      border: 0.28vmin solid #5B3511;
+      border-radius: 1em 0.7em 0.9em 0.65em / 0.7em 1em 0.6em 0.85em;
+      box-shadow: 0 0.35vmin 0 var(--plank-edge),
+                  0 0.7vmin 1vmin rgba(45, 30, 10, 0.22);
+      padding: 0;
+      cursor: pointer;
+      transition: transform 0.14s ease, box-shadow 0.14s ease;
+    }
+
+    .exp-btn:hover {
+      transform: translateY(-0.18vmin);
+      box-shadow: 0 0.5vmin 0 var(--plank-edge),
+                  0 0.9vmin 1.2vmin rgba(45, 30, 10, 0.26);
+    }
+
+    .exp-btn:active {
+      transform: translateY(0.3vmin);
+      box-shadow: 0 0.05vmin 0 var(--plank-edge),
+                  0 0.3vmin 0.5vmin rgba(45, 30, 10, 0.22);
+    }
+
+    .exp-btn[disabled] {
+      opacity: 0.45;
+      cursor: default;
+      transform: none;
+      box-shadow: 0 0.35vmin 0 var(--plank-edge);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .compass-arrow,
+      .exp-card.exp-anim { transition: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="scene" data-exit="bag">
+
+    <script>loadLocal('js/scene/bagroom.js');</script>
+
+    <div class="foreground" data-bag-item>
+
+      <div class="compass-big">
+        <img class="compass-art" src="illustrations/compass/compass_big.svg" alt="Compass">
+        <img class="compass-arrow" src="illustrations/compass/arrow.svg" alt="">
+        <img class="compass-middle" src="illustrations/compass/middle.svg" alt="">
+      </div>
+
+      <div class="exp-stage">
+        <div class="exp-window" id="expWindow"></div>
+        <div class="exp-nav">
+          <button class="exp-btn" id="expPrev" title="previous" aria-label="previous area">&#9650;</button>
+          <button class="exp-btn" id="expNext" title="next" aria-label="next area">&#9660;</button>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <script>loadLocal('js/scene/room.js');</script>
+  <script>loadLocal('js/scene/hotspots.js');</script>
+  <script>loadLocal('js/scene/bagitem.js');</script>
+
+  <script>
+  /* Needle and card are one thing; the dial is one bearing per entry in js/data/expertise.js. */
+  (function () {
+    'use strict';
+
+    const EXPERTISE = window.EXPERTISE || [];
+    if (!EXPERTISE.length) {
+      console.warn('compass.html: js/data/expertise.js did not load.');
+      return;
+    }
+
+    const EXP_MS = 420;      // a card turned by a plank
+    const DRAG_MS = 200;     // a card turned by dragging the needle
+    const STEP = 360 / EXPERTISE.length;
+    const START = 90;        // the bearing the first card sits at
+
+    const win = document.getElementById('expWindow');
+    const prevBtn = document.getElementById('expPrev');
+    const nextBtn = document.getElementById('expNext');
+    const arrow = document.querySelector('.compass-arrow');
+    const compass = document.querySelector('.compass-big');
+    const scene = document.querySelector('.scene');
+
+    const reduce = window.matchMedia &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    let index = 0;
+    let bearing = START;     // kept unwrapped, so dragging can spin freely
+    let turning = false;
+
+    function buildCard(area) {
+      const card = document.createElement('div');
+      card.className = 'exp-card';
+
+      const title = document.createElement('div');
+      title.className = 'exp-title';
+      title.textContent = area.title;
+      card.appendChild(title);
+
+      const list = document.createElement('ul');
+      list.className = 'exp-points';
+      (area.points || []).forEach(function (point) {
+        const li = document.createElement('li');
+        li.textContent = point;
+        list.appendChild(li);
+      });
+      card.appendChild(list);
+      return card;
+    }
+
+    function aimNeedle(ms) {
+      if (!arrow) return;
+      arrow.style.setProperty('--needle-dur', (reduce ? 0 : ms) + 'ms');
+      arrow.style.setProperty('--needle', bearing + 'deg');
+    }
+
+    function indexFor(angle) {
+      const n = EXPERTISE.length;
+      return ((Math.round((angle - START) / STEP) % n) + n) % n;
+    }
+
+    function slideTo(to, dir, ms) {
+      const dur = reduce ? 0 : ms;
+
+      // Dragging fast can outrun the transitions; drop any card still sliding.
+      const stack = win.querySelectorAll('.exp-card');
+      for (let i = 0; i < stack.length - 1; i++) stack[i].remove();
+
+      const leaving = win.querySelector('.exp-card');
+      const arriving = buildCard(EXPERTISE[to]);
+
+      arriving.style.transform = 'translateY(' + (dir> 0 ? 100 : -100) + '%)';
+      arriving.style.opacity = '0';
+      win.appendChild(arriving);
+
+      arriving.style.setProperty('--exp-dur', dur + 'ms');
+      if (leaving) leaving.style.setProperty('--exp-dur', dur + 'ms');
+
+      void arriving.offsetHeight;
+
+      arriving.classList.add('exp-anim');
+      arriving.style.transform = 'translateY(0)';
+      arriving.style.opacity = '1';
+      if (leaving) {
+        leaving.classList.add('exp-anim');
+        leaving.style.transform = 'translateY(' + (dir> 0 ? -100 : 100) + '%)';
+        leaving.style.opacity = '0';
+      }
+
+      setTimeout(function () {
+        if (leaving && leaving.parentNode) leaving.remove();
+        arriving.classList.remove('exp-anim');
+      }, dur + 40);
+    }
+
+    function turn(dir) {
+      if (turning || dragging || EXPERTISE.length < 2) return;
+      turning = true;
+      prevBtn.disabled = true;
+      nextBtn.disabled = true;
+      setTimeout(function () {
+        turning = false;
+        prevBtn.disabled = false;
+        nextBtn.disabled = false;
+      }, (reduce ? 0 : EXP_MS) + 40);
+
+      index = (index + dir + EXPERTISE.length) % EXPERTISE.length;
+      bearing += dir * STEP;
+      aimNeedle(EXP_MS);
+      slideTo(index, dir, EXP_MS);
+    }
+
+        /* Only inside the dial: the rest of the artwork is the case. */
+    let dragging = false;
+    let dragId = null;
+    let lastAngle = 0;
+    let travelled = 0;
+
+    function facePct(el, name, fallback) {
+      const n = parseFloat(getComputedStyle(el).getPropertyValue(name).trim());
+      return isNaN(n) ? fallback : n / 100;
+    }
+
+    function pivot() {
+      const r = compass.getBoundingClientRect();
+      return {
+        x: r.left + r.width * facePct(compass, '--face-cx', 0.5),
+        y: r.top + r.height * facePct(compass, '--face-cy', 0.5),
+        r: r.width * facePct(compass, '--face-r', 0.25)
+      };
+    }
+
+    function angleAt(e, p) {
+      return Math.atan2(e.clientY - p.y, e.clientX - p.x) * 180 / Math.PI;
+    }
+
+    if (compass && arrow) {
+      compass.addEventListener('pointerdown', function (e) {
+        if (e.button !== undefined && e.button !== 0) return;
+
+        const p = pivot();
+        const dx = e.clientX - p.x;
+        const dy = e.clientY - p.y;
+        if (dx * dx + dy * dy> p.r * p.r) return;
+
+        dragging = true;
+        dragId = e.pointerId;
+        travelled = 0;
+        lastAngle = angleAt(e, p);
+        arrow.style.setProperty('--needle-dur', '0ms');
+        document.body.classList.add('needle-dragging');
+        try { compass.setPointerCapture(e.pointerId); } catch (err) {}
+        e.preventDefault();
+      });
+
+      compass.addEventListener('pointermove', function (e) {
+        if (!dragging || e.pointerId !== dragId) return;
+
+        // Unwrap the step, or crossing due north spins the needle the long way round.
+        const p = pivot();
+        const now = angleAt(e, p);
+        let step = now - lastAngle;
+        while (step> 180) step -= 360;
+        while (step < -180) step += 360;
+        lastAngle = now;
+
+        bearing += step;
+        travelled += Math.abs(step);
+        arrow.style.setProperty('--needle', bearing + 'deg');
+
+        const live = indexFor(bearing);
+        if (live !== index) {
+          index = live;
+          slideTo(index, step> 0 ? 1 : -1, DRAG_MS);
+        }
+      });
+
+      function endDrag(e) {
+        if (!dragging || (e && e.pointerId !== dragId)) return;
+        dragging = false;
+        dragId = null;
+        document.body.classList.remove('needle-dragging');
+
+        // Snap to the nearest bearing.
+        bearing = START + Math.round((bearing - START) / STEP) * STEP;
+        aimNeedle(EXP_MS);
+
+        // Tell the close-on-click handler this was a drag.
+        if (travelled> 2) window.NEEDLE_DRAG_END = Date.now();
+      }
+
+      compass.addEventListener('pointerup', endDrag);
+      compass.addEventListener('pointercancel', endDrag);
+      compass.addEventListener('lostpointercapture', endDrag);
+    }
+
+    win.appendChild(buildCard(EXPERTISE[index]));
+    aimNeedle(0);
+
+    nextBtn.addEventListener('click', function () { turn(1); });
+    prevBtn.addEventListener('click', function () { turn(-1); });
+
+      // Up and down only: left and right belong to music.js.
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'ArrowDown') { e.preventDefault(); turn(1); }
+      if (e.key === 'ArrowUp') { e.preventDefault(); turn(-1); }
+    });
+
+        /* The dial is excluded, so letting go of a drag on the needle does not close the room. */
+    document.addEventListener('click', (e) => {
+      if (Date.now() - (window.NEEDLE_DRAG_END || 0) < 250) return;
+      if (e.target.closest('.back-button, .bee-bubble, .exp-stage')) return;
+      if (compass) {
+        const p = pivot();
+        const dx = e.clientX - p.x;
+        const dy = e.clientY - p.y;
+        if (dx * dx + dy * dy <= p.r * p.r) return;
+      }
+      bagTransition.toBag();
+    });
+  })();
+  </script>
+
+  <script>loadLocal('js/scene/bee.js');</script>
+
+</body>
+</html>

@@ -1,0 +1,44 @@
+/* The fade between the backpack and one of the things inside it. [data-bag-dim] is the sheet, [data-bag-item] the item; js/scene/bagitem.js drives both. */
+
+[data-bag-dim] {
+  position: fixed;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 9000;
+}
+
+[data-bag-dim].bag-dark {
+  opacity: 1;
+}
+
+/* `scale` rather than `transform`, so it composes with whatever already places the layer. */
+[data-bag-item] {
+  --item-arrive: 0.97;
+  transform-origin: 50% 50%;
+  opacity: 0;
+  scale: var(--item-arrive);
+}
+
+[data-bag-item].bag-shown {
+  opacity: 1;
+  scale: 1;
+}
+
+[data-bag-dim].bag-anim {
+  transition: opacity var(--bag-dur, 520ms) ease;
+  will-change: opacity;
+}
+
+[data-bag-item].bag-anim {
+  transition: opacity var(--bag-dur, 520ms) ease,
+              scale var(--bag-dur, 520ms) cubic-bezier(0.16, 0.84, 0.3, 1);
+  will-change: opacity, scale;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-bag-item],
+  [data-bag-item].bag-shown {
+    scale: 1;
+  }
+}

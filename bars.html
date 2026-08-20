@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>rolands barkans</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Kosugi+Maru&display=swap" rel="stylesheet">
+  <script src="js/core/boot.js"></script>
+  <script>
+    loadLocal('js/core/assets.js');
+    loadLocal('js/core/music.js');
+
+    loadLocal('css/scene/room.css');
+    loadLocal('css/scene/hotspots.css');
+    loadLocal('css/scene/bagitem.css');
+    loadLocal('css/scene/bagroom.css');
+    loadLocal('css/scene/bee.css');
+    loadLocal('css/sky/nightrooms.css');
+    loadLocal('js/sky/nightrooms.js');
+    loadLocal('js/scene/nightart.js');
+  </script>
+
+  <style>
+    :root {
+      --bee-font: 'Kosugi Maru';
+      --bee-size: 14px;
+    }
+
+    .bar-1,
+    .bar-2 {
+      position: absolute;
+      left: 50%;
+      width: 50%;
+      transform: translate(-50%, -50%);
+    }
+
+    .bar-1 { top: 36.7%; }
+    .bar-2 { top: 63.3%; }
+
+    .bar-art {
+      display: block;
+      width: 100%;
+    }
+
+    /* The wrappers ignore the pointer so a click counts as one on the backdrop; the icons take it back. */
+    .bar-1,
+    .bar-2,
+    .bar-art {
+      pointer-events: none;
+    }
+
+    /* data-hit="box" in the markup: these are small and their box is their shape. The padding widens the target without moving the drawing. */
+    .github-icon,
+    .linkedin-icon,
+    .gmail-icon {
+      position: absolute;
+      display: block;
+      pointer-events: auto;
+      box-sizing: content-box;
+      padding: 2.6% 1.2%;
+
+      --origin: 50% 50%;
+      --grow: 0.16;
+      --lean: 0deg;
+      --lag: 0ms;
+      --spin: 0deg;
+    }
+
+    .github-icon   { left: 42%;   top: 57%;   width: 18%; }
+    .linkedin-icon { left: 63.4%; top: 57%;   width: 18.8%; }
+    .gmail-icon    { left: 52.4%; top: 57.2%; width: 31.6%; }
+  </style>
+</head>
+<body>
+
+  <div class="scene" data-exit="bag">
+
+    <script>loadLocal('js/scene/bagroom.js');</script>
+
+    <div class="stage foreground" data-bag-item>
+
+      <div class="bar-1">
+        <img class="bar-art" src="illustrations/bars/bar1.svg" alt="Protein bar">
+
+        <a class="github-icon hotspot" data-hit="box"
+           href="https://github.com/rolandsbarkans"
+           target="_blank" rel="noopener noreferrer">
+          <span class="swell"><img src="illustrations/bars/github.svg" alt="GitHub"></span>
+        </a>
+
+        <a class="linkedin-icon hotspot" data-hit="box"
+           href="https://linkedin.com/in/rolands-barkans-11411b247"
+           target="_blank" rel="noopener noreferrer">
+          <span class="swell"><img src="illustrations/bars/linkedin.svg" alt="LinkedIn"></span>
+        </a>
+      </div>
+
+      <div class="bar-2">
+        <img class="bar-art" src="illustrations/bars/bar2.svg" alt="Protein bar">
+
+        <div class="gmail-icon hotspot" data-hit="box" onclick="handleGmailClick()">
+          <span class="swell"><img src="illustrations/bars/gmail.svg" alt="Email"></span>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <script>loadLocal('js/scene/room.js');</script>
+  <script>loadLocal('js/scene/hotspots.js');</script>
+  <script>loadLocal('js/scene/bagitem.js');</script>
+
+  <script>loadLocal('js/scene/emailcopy.js');</script>
+
+  <script>
+    function handleGmailClick() {
+      EmailCopy.copy();
+    }
+
+    /* The artwork has a wide transparent margin, so a click near the edge still counts as off the bar. */
+    const HIT_INSET = { left: 10, right: 10, top: 10, bottom: 10 };
+
+    document.addEventListener('click', (e) => {
+      const scene = document.querySelector('.scene');
+      if (e.target.closest('.github-icon, .linkedin-icon, .gmail-icon, .back-button, .bee-bubble')) return;
+      for (const bar of document.querySelectorAll('.bar-1, .bar-2')) {
+        const r = bar.getBoundingClientRect();
+        const x = ((e.clientX - r.left) / r.width) * 100;
+        const y = ((e.clientY - r.top) / r.height) * 100;
+        if (x> HIT_INSET.left && x < 100 - HIT_INSET.right &&
+            y> HIT_INSET.top && y < 100 - HIT_INSET.bottom) return;
+      }
+      bagTransition.toBag();
+    });
+  </script>
+
+  <script>loadLocal('js/scene/bee.js');</script>
+
+</body>
+</html>

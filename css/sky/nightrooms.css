@@ -1,0 +1,41 @@
+/* What `html.night` means outside the campsite: the backdrop dims, the things in it do not. Put `night-backdrop` on the background; --room-night-sky overrides the dark. */
+
+:root {
+  --room-night: 0.42;
+  --room-night-sat: 0.75;
+  --night-blue: 10, 19, 48;
+}
+
+body {
+  transition: background-color 1.1s ease;
+}
+
+html.night body {
+  background-color: var(--room-night-sky, rgb(var(--night-blue)));
+}
+
+.night-backdrop {
+  transition: filter 1.1s ease;
+}
+
+html.night .night-backdrop {
+  filter: brightness(var(--room-night)) saturate(var(--room-night-sat));
+}
+
+/* The page-change washes go dark too, so walking between dark rooms never flashes. */
+html.night body::before,
+html.night body::after {
+  background: rgb(var(--night-blue));
+}
+
+html.night-instant body,
+html.night-instant .night-backdrop {
+  transition: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body,
+  .night-backdrop {
+    transition: none;
+  }
+}

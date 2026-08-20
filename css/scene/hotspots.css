@@ -1,0 +1,145 @@
+/* The liquid swell on anything pointable: .swell carries the sideways stretch and the artwork the vertical one a beat later. `decor` wobbles once instead of holding it. */
+
+@layer hotspots {
+
+  .hotspot {
+
+    --grow: 0.07;
+    --lean: 0.9deg;
+    --lag: 60ms;
+    --breathe: 0.006;
+    --dur-in: 0.65s;
+    --dur-out: 0.45s;
+
+    --tip: 0deg;
+    --spread: var(--grow);
+    --persp: 190cqw;
+
+    container-type: inline-size;
+
+    --origin: 50% 100%;
+
+    --spring-in: linear(0, 0.1499 3.8%, 0.4786 7.7%, 0.8266 11.5%, 1.0901 15.4%, 1.2281 19.2%, 1.2502 23.1%, 1.1945 26.9%, 1.106 30.8%, 1.0219 34.6%, 0.9637 38.5%, 0.9378 42.3%, 0.939 46.2%, 0.9567 50%, 0.9797 53.8%, 0.9995 57.7%, 1.0119 61.5%, 1.0163 65.4%, 1.0145 69.2%, 1.0093 73.1%, 1.0036 76.9%, 0.999 80.8%, 0.9965 84.6%, 0.9959 88.5%, 0.9966 92.3%, 0.9981 96.2%, 1);
+    --spring-out: linear(0, 0.1246 7.1%, 0.3674 14.3%, 0.6071 21.4%, 0.7932 28.6%, 0.9164 35.7%, 0.9863 42.9%, 1.0186 50%, 1.0282 57.1%, 1.026 64.3%, 1.0195 71.4%, 1.0125 78.6%, 1.0068 85.7%, 1.003 92.9%, 1);
+
+    position: absolute;
+
+    --spin: 0deg;
+    transform: translate(-50%, -50%) rotate(var(--spin));
+  }
+
+  .hotspot .swell {
+    display: block;
+    transform: perspective(var(--persp)) rotateX(0deg) scaleX(1);
+    transform-origin: var(--origin);
+    transition: transform var(--dur-out) var(--spring-out);
+    will-change: transform;
+  }
+
+  .hotspot img,
+  .hotspot svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    transform: scaleY(1) skewX(0deg);
+    transform-origin: var(--origin);
+    transition: transform var(--dur-out) var(--spring-out);
+    will-change: transform;
+  }
+
+  .hotspot.lit:not(.decor) {
+    cursor: pointer;
+  }
+
+  .hotspot.lit:not(.decor) .swell {
+    transform: perspective(var(--persp)) rotateX(var(--tip)) scaleX(calc(1 + var(--spread)));
+    transition: transform var(--dur-in) var(--spring-in) var(--lag);
+  }
+
+  .hotspot.lit:not(.decor) img,
+  .hotspot.lit:not(.decor) svg {
+    transform: scaleY(calc(1 + var(--grow))) skewX(var(--lean));
+    transition: transform var(--dur-in) var(--spring-in);
+
+    animation: hotspot-breathe 2.6s ease-in-out var(--dur-in) infinite;
+  }
+
+  .hotspot {
+
+    --dur-nudge: 0.55s;
+    --nudge-settle: 0.15;
+  }
+
+  .hotspot.decor.nudged img,
+  .hotspot.decor.nudged svg {
+    animation: hotspot-nudge-y var(--dur-nudge);
+  }
+
+  .hotspot.decor.nudged .swell {
+    animation: hotspot-nudge-x var(--dur-nudge) var(--lag);
+  }
+
+  @keyframes hotspot-nudge-y {
+    0% {
+      transform: scaleY(1) skewX(0deg);
+      animation-timing-function: cubic-bezier(0.15, 0.75, 0.35, 1);
+    }
+    32% {
+      transform: scaleY(calc(1 + var(--grow))) skewX(var(--lean));
+      animation-timing-function: cubic-bezier(0.4, 0, 0.4, 1);
+    }
+    68% {
+      transform: scaleY(calc(1 - var(--grow) * var(--nudge-settle)))
+                 skewX(calc(var(--lean) * -0.25));
+      animation-timing-function: ease-out;
+    }
+    100% { transform: scaleY(1) skewX(0deg); }
+  }
+
+  @keyframes hotspot-nudge-x {
+    0% {
+      transform: perspective(var(--persp)) rotateX(0deg) scaleX(1);
+      animation-timing-function: cubic-bezier(0.15, 0.75, 0.35, 1);
+    }
+    32% {
+      transform: perspective(var(--persp)) rotateX(var(--tip))
+                 scaleX(calc(1 + var(--spread)));
+      animation-timing-function: cubic-bezier(0.4, 0, 0.4, 1);
+    }
+    68% {
+      transform: perspective(var(--persp)) rotateX(calc(var(--tip) * -0.25))
+                 scaleX(calc(1 - var(--spread) * var(--nudge-settle)));
+      animation-timing-function: ease-out;
+    }
+    100% { transform: perspective(var(--persp)) rotateX(0deg) scaleX(1); }
+  }
+
+  @keyframes hotspot-breathe {
+    0%, 100% { scale: 1 1; }
+    50%      { scale: calc(1 - var(--breathe)) calc(1 + var(--breathe)); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+
+    .hotspot {
+      --lean: 0deg;
+      --lag: 0ms;
+      --breathe: 0;
+      --dur-in: 0.12s;
+      --dur-out: 0.12s;
+      --spring-in: ease-out;
+      --spring-out: ease-out;
+    }
+    .hotspot.lit img,
+    .hotspot.lit svg {
+      animation: none;
+    }
+
+    .hotspot.decor.nudged img,
+    .hotspot.decor.nudged svg,
+    .hotspot.decor.nudged .swell {
+      animation: none;
+    }
+  }
+
+}

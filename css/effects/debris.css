@@ -1,0 +1,106 @@
+/* Shavings off the log and chips off the rocks. Set up per speck by js/effects/debris.js. */
+
+.bit {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  width: var(--size);
+  pointer-events: none;
+  z-index: 2;
+  will-change: transform, opacity;
+  animation: bit-throw var(--dur) cubic-bezier(0.1, 0.55, 0.35, 1) var(--delay) forwards;
+}
+
+.bit-fall {
+  display: block;
+  width: 100%;
+  height: 100%;
+  animation: bit-arc var(--dur) var(--delay) forwards;
+}
+
+.bit-body {
+  display: block;
+  width: 100%;
+  height: 100%;
+  animation: bit-tumble var(--dur) linear var(--delay) forwards;
+}
+
+.bit.shaving {
+  aspect-ratio: 1 / 0.85;
+}
+
+.bit.shaving .bit-body {
+  box-sizing: border-box;
+  border: calc(var(--size) * 0.19) solid transparent;
+  border-radius: 50%;
+}
+
+.bit.shaving.v-a .bit-body {
+  border-top-color: var(--tone);
+  border-right-color: var(--shade);
+}
+
+.bit.shaving.v-b .bit-body {
+  border-top-color: var(--tone);
+}
+
+.bit.shaving.v-c .bit-body {
+  border-top-color: var(--tone);
+  border-right-color: var(--shade);
+  border-bottom-color: var(--shade);
+}
+
+.bit.chip .bit-body {
+  background: linear-gradient(128deg, var(--tone) 0 52%, var(--shade) 52% 100%);
+}
+
+.bit.chip.v-a {
+  aspect-ratio: 1 / 0.72;
+}
+.bit.chip.v-a .bit-body {
+  clip-path: polygon(38% 0, 100% 34%, 76% 92%, 20% 100%, 0 40%);
+}
+
+.bit.chip.v-b {
+  aspect-ratio: 1 / 0.5;
+}
+.bit.chip.v-b .bit-body {
+  clip-path: polygon(16% 0, 100% 22%, 92% 76%, 34% 100%, 0 46%);
+}
+
+.bit.chip.v-c {
+  aspect-ratio: 1 / 0.86;
+}
+.bit.chip.v-c .bit-body {
+  clip-path: polygon(58% 0, 100% 66%, 36% 100%, 0 26%);
+}
+
+@keyframes bit-throw {
+  0%   { transform: translateX(0); opacity: 0; }
+  6%   { opacity: 1; }
+  72%  { opacity: 1; }
+  100% { transform: translateX(var(--drift)); opacity: 0; }
+}
+
+@keyframes bit-arc {
+  0% {
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(0.12, 0.62, 0.4, 1);
+  }
+  34% {
+    transform: translateY(calc(var(--rise) * -1));
+    animation-timing-function: cubic-bezier(0.55, 0, 0.85, 0.6);
+  }
+  100% {
+    transform: translateY(var(--fall));
+  }
+}
+
+@keyframes bit-tumble {
+  from { transform: rotate(var(--tilt)); }
+  to   { transform: rotate(calc(var(--tilt) + var(--spin))); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bit { display: none; }
+}

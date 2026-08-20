@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>rolands barkans</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Kosugi+Maru&family=Yomogi&display=swap" rel="stylesheet">
+
+  <script src="js/core/boot.js"></script>
+  <script>
+    loadLocal('js/core/assets.js');
+    loadLocal('js/core/music.js');
+
+    loadLocal('css/scene/room.css');
+    loadLocal('css/scene/hotspots.css');
+    loadLocal('css/scene/bee.css');
+    loadLocal('css/effects/flowers.css');
+    loadLocal('css/sky/nightrooms.css');
+    loadLocal('js/sky/nightrooms.js');
+  </script>
+
+  <style>
+    :root {
+      --meadow: #94B700;
+      --wash: var(--meadow);
+      --room-night-sky: #404B11;
+      --bee-font: 'Kosugi Maru';
+      --bee-size: 14px;
+      --bee-max: 320px;
+    }
+
+    body {
+      background-color: var(--meadow);
+      /* A field to draw on, not text to be selected. */
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    .meadow {
+      position: absolute;
+      inset: 0;
+      background: var(--meadow);
+    }
+
+    /* The island's patch, zoomed in and data-static: a palette rather than scenery. */
+
+    .flowers {
+      position: absolute;
+      left: 66.9%;
+      top: 78.2%;
+      width: 170%;
+      transform: translate(-50%, -50%);
+      --growth: 0.85;
+      cursor: pointer;
+    }
+
+    /* Hit-tested by distance in the script below: at this size a flower's box is bigger than the gap to its neighbour. */
+    .flowers svg,
+    .flowers .flower {
+      pointer-events: none;
+    }
+
+    .flowers .uf-ring {
+      --ring: #4A5A12;
+      fill: none;
+      stroke: var(--ring);
+      stroke-linejoin: round;
+      stroke-linecap: round;
+      opacity: 0;
+      transition: opacity 0.16s ease;
+      pointer-events: none;
+    }
+
+    .flowers .flower.uf-hot .uf-ring { opacity: 0.75; }
+
+    .flowers .flower.uf-picked .uf-ring {
+      opacity: 1;
+      stroke-width: calc(var(--ring-w, 1) * 1.5);
+    }
+
+    .flowers .flower { transition: opacity 0.3s ease; }
+
+    /* Once a kind is picked, the others step back. */
+    .scene.has-pick .flowers .flower:not(.uf-picked):not(.uf-hot) {
+      opacity: 0.72;
+    }
+
+        .studio {
+      position: absolute;
+      left: 78.4%;
+      top: 28.7%;
+      width: 36.6%;
+      transform: translate(-50%, -50%);
+      container-type: inline-size;
+      z-index: 500;
+    }
+
+    .studio-stack {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3.4cqw;
+    }
+
+    .studio-top {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 3.2cqw;
+    }
+
+    /* Only the flower's own regions take the pointer, so a stroke off the petals is not drawn. */
+    .pad-paper {
+      display: block;
+      width: 54cqw;
+      height: auto;
+      filter: drop-shadow(0 0.7cqw 0.9cqw rgba(45, 30, 10, 0.28));
+      touch-action: none;
+      margin: -4cqw 0;
+      pointer-events: none;
+    }
+
+    .pad-paper .uf-region { pointer-events: auto; }
+
+        .btn {
+      --plank: #EAC68C;
+      --plank-edge: #C89A5B;
+      font-family: 'Yomogi', cursive;
+      font-size: 3.1cqw;
+      color: #4A2A08;
+      background: var(--plank);
+      border: 0.5cqw solid #5B3511;
+      border-radius: 1em 0.7em 0.9em 0.65em / 0.7em 1em 0.6em 0.85em;
+      box-shadow: 0 0.65cqw 0 var(--plank-edge),
+                  0 1.3cqw 1.9cqw rgba(45, 30, 10, 0.22);
+      padding: 0.5em 1em 0.6em;
+      line-height: 1;
+      transition: transform 0.14s ease, box-shadow 0.14s ease;
+    }
+
+    .btn:hover {
+      transform: translateY(-0.35cqw);
+      box-shadow: 0 0.95cqw 0 var(--plank-edge),
+                  0 1.7cqw 2.3cqw rgba(45, 30, 10, 0.26);
+    }
+
+    .btn:active {
+      transform: translateY(0.55cqw);
+      box-shadow: 0 0.1cqw 0 var(--plank-edge),
+                  0 0.55cqw 0.95cqw rgba(45, 30, 10, 0.22);
+    }
+
+    .btn[disabled] {
+      opacity: 0.4;
+      transform: none;
+      box-shadow: 0 0.65cqw 0 var(--plank-edge);
+    }
+
+    .btn.icon {
+      width: 8cqw;
+      height: 8cqw;
+      display: grid;
+      place-items: center;
+      padding: 0;
+      font-size: 4.2cqw;
+    }
+
+    .btn.add {
+      --plank: #D9705C;
+      --plank-edge: #A8442F;
+      color: #FFF3E2;
+      border-color: #6E2A1B;
+    }
+
+    .pad-actions {
+      display: flex;
+      align-items: end;
+      justify-content: center;
+      gap: 2.4cqw;
+    }
+
+    .modes {
+      display: flex;
+      flex-direction: column;
+      gap: 1.4cqw;
+    }
+
+    .btn.mode {
+      width: 15cqw;
+      padding: 0.5em 0 0.6em;
+      text-align: center;
+    }
+
+    .btn.mode.on {
+      --plank: #C59A57;
+      --plank-edge: #8E6A32;
+      color: #FFF3E2;
+      transform: translateY(0.45cqw);
+      box-shadow: 0 0.2cqw 0 var(--plank-edge),
+                  inset 0 0.5cqw 1cqw rgba(45, 30, 10, 0.35);
+    }
+
+    .swatches {
+      display: grid;
+      grid-template-columns: repeat(8, auto);
+      justify-content: center;
+      align-items: center;
+      gap: 1.8cqw;
+      padding: 1cqw;
+    }
+
+    .swatch {
+      flex: none;
+      width: 5.4cqw;
+      height: 5.4cqw;
+      border-radius: 50%;
+      border: 0.5cqw solid #3A2A16;
+      box-shadow: 0 0.5cqw 0 rgba(45, 30, 10, 0.35);
+      padding: 0;
+      transition: transform 0.14s ease;
+    }
+
+    .swatch:hover { transform: scale(1.12); }
+
+    .swatch.on {
+      transform: scale(1.05);
+      box-shadow: 0 0 0 0.28cqw #FFFDF4,
+                  0 0 0 0.58cqw #3A2A16,
+                  0 0.5cqw 0.8cqw rgba(45, 30, 10, 0.35);
+    }
+
+    .widths {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1.3cqw;
+      padding: 1.3cqw 1.1cqw;
+      background: rgba(255, 253, 244, 0.55);
+      border: 0.42cqw solid #3A2A16;
+      border-radius: 2.7cqw;
+      transition: opacity 0.18s ease;
+    }
+
+    /* Line width means nothing to the fill tool. */
+    .widths.off {
+      opacity: 0.25;
+      pointer-events: none;
+    }
+
+    .width-dot {
+      width: 5cqw;
+      height: 5cqw;
+      display: grid;
+      place-items: center;
+      border: none;
+      background: none;
+      padding: 0;
+      border-radius: 50%;
+      transition: background 0.14s ease;
+    }
+
+    /* Each dot is drawn at the width it stands for, scaled from the pad. */
+    .width-dot i {
+      display: block;
+      border-radius: 50%;
+      background: #3A2A16;
+      width: var(--dot);
+      height: var(--dot);
+    }
+
+    .width-dot:hover { background: rgba(58, 42, 22, 0.12); }
+    .width-dot.on { background: #3A2A16; }
+    .width-dot.on i { background: #FFFDF4; }
+
+    .btn,
+    .swatch,
+    .width-dot {
+      cursor: pointer;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+
+    .btn:focus-visible,
+    .swatch:focus-visible,
+    .width-dot:focus-visible {
+      outline: 0.5cqw dashed #3A2A16;
+      outline-offset: 0.6cqw;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="scene" data-exit="main.html" data-door=".flowers">
+
+    <div class="meadow night-backdrop"></div>
+
+    <div class="flowers" id="patch" data-static></div>
+
+    <div class="studio" id="studio">
+      <div class="studio-stack">
+
+        <div class="studio-top">
+          <div class="swatches" id="swatches"></div>
+
+          <div class="modes">
+            <button class="btn mode" id="drawMode">draw</button>
+            <button class="btn mode on" id="fillMode">fill</button>
+          </div>
+
+          <div class="widths" id="widths"></div>
+        </div>
+
+        <svg class="pad-paper" id="pad" viewBox="0 0 100 100"
+             aria-label="the flower you are making"></svg>
+
+        <div class="pad-actions">
+          <button class="btn add" id="addBtn">plant</button>
+          <button class="btn icon" id="undoBtn" title="undo" aria-label="undo">&#8630;</button>
+          <button class="btn icon" id="redoBtn" title="redo" aria-label="redo">&#8631;</button>
+          <button class="btn" id="clearBtn">clear</button>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <div class="bee-bubble" id="beeIntro">pick a flower type in the field,
+    customize it on the canvas on your right, and press <span class="kbd">plant</span>
+    when you're happy with the design.
+    <span class="bee-note"> press <span class="kbd">enter</span>
+    if you're ready</span></div>
+
+  <script>loadLocal('js/scene/room.js');</script>
+  <script>loadLocal('js/scene/hotspots.js');</script>
+
+  <script>loadLocal('js/effects/userflowers.js');</script>
+  <script>loadLocal('js/effects/flowers.js');</script>
+
+  <script>
+    // Coming here retires the flower hint on the island; see main.html.
+    try { localStorage.setItem('seenDrawRoom', '1'); } catch (err) {}
+  </script>
+
+  <script>
+      /* Point at the field to light a kind, click to load it onto the pad, plant to put it back. */
+  (function () {
+    'use strict';
+
+    const PALETTE = [
+      '#FFF6E6', '#FFDCA9', '#FAE06C', '#FFC93F',
+      '#FFB74D', '#F08A3C', '#D9705C', '#FC7F7F',
+      '#F2A0B5', '#D4607F', '#9C86C8', '#7FA8DE',
+      '#8FBF3F', '#4E6B1F', '#6B4A2F', '#3A2A16'
+    ];
+
+    const WIDTHS = [1.8, 3.6, 6.5];
+    const MIN_STEP = 0.4;        // shortest segment worth recording
+
+      // The pad's viewBox is the flower's 100x100 box plus a margin, so a stroke can start just off the petals without being clipped.
+    const PAD_MARGIN = 12;
+    const PAD_SPAN = 100 + PAD_MARGIN * 2;
+    const PAD_WIDTH_CQW = 54;
+
+    const UF = window.UserFlowers;
+    const scene = document.querySelector('.scene');
+    const patch = document.getElementById('patch');
+    const pad = document.getElementById('pad');
+    const swatchBox = document.getElementById('swatches');
+    const widthBox = document.getElementById('widths');
+    const addBtn = document.getElementById('addBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const undoBtn = document.getElementById('undoBtn');
+    const redoBtn = document.getElementById('redoBtn');
+    const drawModeBtn = document.getElementById('drawMode');
+    const fillModeBtn = document.getElementById('fillMode');
+    const patchSvg = patch.querySelector('svg');
+
+    pad.setAttribute('viewBox',
+      -PAD_MARGIN + ' ' + -PAD_MARGIN + ' ' + PAD_SPAN + ' ' + PAD_SPAN);
+
+    function beeTalking() { return document.documentElement.classList.contains('bee-talking'); }
+
+    let colour = PALETTE[4];
+    let width = WIDTHS[1];
+    let tool = 'fill';
+
+    PALETTE.forEach((c) => {
+      const b = document.createElement('button');
+      b.className = 'swatch' + (c === colour ? ' on' : '');
+      b.style.background = c;
+      b.title = c;
+      b.setAttribute('aria-label', 'colour ' + c);
+      b.addEventListener('click', () => {
+        colour = c;
+        swatchBox.querySelectorAll('.swatch').forEach((s) => s.classList.remove('on'));
+        b.classList.add('on');
+      });
+      swatchBox.appendChild(b);
+    });
+
+    WIDTHS.forEach((w) => {
+      const b = document.createElement('button');
+      b.className = 'width-dot' + (w === width ? ' on' : '');
+      b.title = 'line width';
+      b.setAttribute('aria-label', 'line width');
+      const dot = document.createElement('i');
+      // Shown at the size it will actually draw at on the pad.
+      dot.style.setProperty('--dot', (w / PAD_SPAN) * PAD_WIDTH_CQW + 'cqw');
+      b.appendChild(dot);
+      b.addEventListener('click', () => {
+        width = w;
+        widthBox.querySelectorAll('.width-dot').forEach((d) => d.classList.remove('on'));
+        b.classList.add('on');
+      });
+      widthBox.appendChild(b);
+    });
+
+    function setTool(which) {
+      tool = which;
+      drawModeBtn.classList.toggle('on', which === 'draw');
+      fillModeBtn.classList.toggle('on', which === 'fill');
+      widthBox.classList.toggle('off', which === 'fill');
+    }
+
+    drawModeBtn.addEventListener('click', () => setTool('draw'));
+    fillModeBtn.addEventListener('click', () => setTool('fill'));
+
+        /* The drawing is a list of acts, each able to undo itself, rather than snapshots. `cuts` is how many strokes were down when a region was last filled. */
+    let fills = UF.blank().f;
+    let cuts = UF.blank().c;
+    let marks = [];
+    let acts = [];
+    let undone = [];
+
+    function apply(act) {
+      if (act.k === 'fill') { fills[act.i] = act.to; cuts[act.i] = act.cut; }
+      else if (act.k === 'mark') marks.push(act.s);
+      else if (act.k === 'clear') { fills = UF.blank().f; cuts = UF.blank().c; marks = []; }
+    }
+
+    function revert(act) {
+      if (act.k === 'fill') { fills[act.i] = act.from; cuts[act.i] = act.wasCut; }
+      else if (act.k === 'mark') marks.pop();
+      else if (act.k === 'clear') {
+        fills = act.f.slice();
+        cuts = act.c.slice();
+        marks = act.m.slice();
+      }
+    }
+
+    function commit(act) {
+      apply(act);
+      acts.push(act);
+      undone = [];
+      renderPad();
+    }
+
+    function drawn() { return marks.length> 0 || fills.some(Boolean); }
+
+    function renderPad() {
+      pad.innerHTML = picked
+        ? UF.flowerMarkup({ f: fills, m: marks, c: cuts }, 'pad-clip') : '';
+      undoBtn.disabled = !acts.length;
+      redoBtn.disabled = !undone.length;
+      clearBtn.disabled = !picked || !drawn();
+      addBtn.disabled = !picked;
+    }
+
+    function undo() {
+      if (!acts.length) return;
+      const act = acts.pop();
+      revert(act);
+      undone.push(act);
+      renderPad();
+    }
+
+    function redo() {
+      if (!undone.length) return;
+      const act = undone.pop();
+      apply(act);
+      acts.push(act);
+      renderPad();
+    }
+
+    undoBtn.addEventListener('click', undo);
+    redoBtn.addEventListener('click', redo);
+    clearBtn.addEventListener('click', () => {
+      if (!drawn()) return;
+      commit({ k: 'clear', f: fills.slice(), c: cuts.slice(), m: marks.slice() });
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (!(e.metaKey || e.ctrlKey)) return;
+      if (e.key === 'z' || e.key === 'Z') {
+        e.preventDefault();
+        if (e.shiftKey) redo(); else undo();
+      }
+    });
+
+    // Which of the nine regions is under the pointer, or -1 for none.
+    function pieceAt(clientX, clientY) {
+      const el = document.elementFromPoint(clientX, clientY);
+      if (!el || !el.closest) return -1;
+      const region = el.closest('.uf-region');
+      if (!region || !pad.contains(region)) return -1;
+      return +region.getAttribute('data-region');
+    }
+
+    function at(e) {
+      const r = pad.getBoundingClientRect();
+      return {
+        x: +(-PAD_MARGIN + ((e.clientX - r.left) / r.width) * PAD_SPAN).toFixed(2),
+        y: +(-PAD_MARGIN + ((e.clientY - r.top) / r.height) * PAD_SPAN).toFixed(2)
+      };
+    }
+
+    let gesture = null;   // one press-drag-release
+    let run = null;       // the unbroken stretch being drawn right now
+    let runEl = null;
+
+      // The topmost ink layer, so a stroke goes over the fills already down.
+    function ink() {
+      const all = pad.querySelectorAll('.uf-ink');
+      return all[all.length - 1];
+    }
+
+    function line(g) {
+      const el = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+      el.setAttribute('fill', 'none');
+      el.setAttribute('stroke', g.c);
+      el.setAttribute('stroke-width', g.w);
+      el.setAttribute('stroke-linecap', 'round');
+      el.setAttribute('stroke-linejoin', 'round');
+      return el;
+    }
+
+    function points(el, list) {
+      el.setAttribute('points', list.map((p) => p.x + ',' + p.y).join(' '));
+    }
+
+      // Leaving the flower ends the run, so one gesture can be several marks.
+    function extend(e) {
+      if (pieceAt(e.clientX, e.clientY) < 0) {
+        run = null;
+        runEl = null;
+        return;
+      }
+      const q = at(e);
+      if (!run) {
+        run = [q];
+        gesture.g.push(run);
+        runEl = line(gesture);
+        points(runEl, run);
+        ink().appendChild(runEl);
+        return;
+      }
+      const last = run[run.length - 1];
+      if (Math.hypot(q.x - last.x, q.y - last.y) < MIN_STEP) return;
+      run.push(q);
+      points(runEl, run);
+    }
+
+    pad.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+
+      if (tool === 'fill') {
+        const i = pieceAt(e.clientX, e.clientY);
+        if (i < 0) return;
+      // The same colour again still counts if there is newer ink to cover.
+        if ((fills[i] || null) === colour && (cuts[i] || 0) === marks.length) return;
+        commit({
+          k: 'fill', i: i,
+          from: fills[i] || null, to: colour,
+          wasCut: cuts[i] || 0, cut: marks.length
+        });
+        return;
+      }
+
+      gesture = { c: colour, w: width, g: [] };
+      run = null;
+      runEl = null;
+      extend(e);
+      try { pad.setPointerCapture(e.pointerId); } catch (err) {}
+    });
+
+    pad.addEventListener('pointermove', (e) => {
+      if (gesture) extend(e);
+    });
+
+    function endGesture() {
+      if (!gesture) return;
+      const g = gesture;
+      gesture = null;
+      run = null;
+      runEl = null;
+
+      // A polyline of one point draws nothing; give a dot a second point.
+      g.g.forEach((r) => {
+        if (r.length === 1) r.push({ x: r[0].x + 0.01, y: r[0].y });
+      });
+
+      if (!g.g.length) return;
+      commit({ k: 'mark', s: g });
+    }
+
+    pad.addEventListener('pointerup', endGesture);
+    pad.addEventListener('pointercancel', endGesture);
+
+        let styles = UF.load();
+    let picked = null;
+
+    function kindOf(flower) {
+      if (!flower) return null;
+      for (const type of UF.TYPES) {
+        if (flower.classList.contains('uf-' + type.key)) return type.key;
+      }
+      return null;
+    }
+
+    UF.ringAll(patchSvg);
+
+    // How far off a flower still counts as pointing at it, as a fraction of its width.
+    const REACH = 0.55;
+
+    let boxes = null;
+
+    function measure() {
+      boxes = [];
+      patchSvg.querySelectorAll('.flower').forEach((el) => {
+        const kind = kindOf(el);
+        if (!kind) return;
+        const b = (el.querySelector('.head') || el).getBoundingClientRect();
+        if (!b.width) return;
+        boxes.push({ el: el, kind: kind, b: b, reach: b.width * REACH });
+      });
+    }
+
+    window.addEventListener('resize', () => { boxes = null; });
+
+      // By distance to the box, not the centre: the heads overlap.
+    function flowerAt(x, y) {
+      if (!boxes) measure();
+      let best = null;
+      let bestDistance = Infinity;
+      for (const spot of boxes) {
+        const dx = Math.max(spot.b.left - x, 0, x - spot.b.right);
+        const dy = Math.max(spot.b.top - y, 0, y - spot.b.bottom);
+        if (dx> spot.reach || dy> spot.reach) continue;
+        const distance = Math.hypot(dx, dy);
+        if (distance < bestDistance) {
+          bestDistance = distance;
+          best = spot;
+        }
+      }
+      return best;
+    }
+
+    let hot = null;
+
+    function light(kind) {
+      if (kind === hot) return;
+      hot = kind;
+      patchSvg.querySelectorAll('.flower').forEach((el) => {
+        el.classList.toggle('uf-hot', !!kind && el.classList.contains('uf-' + kind));
+      });
+    }
+
+    function markPicked() {
+      patchSvg.querySelectorAll('.flower').forEach((el) => {
+        el.classList.toggle('uf-picked', !!picked && el.classList.contains('uf-' + picked));
+      });
+      scene.classList.toggle('has-pick', !!picked);
+    }
+
+    document.addEventListener('pointermove', (e) => {
+      if (beeTalking()) { light(null); return; }
+      const spot = flowerAt(e.clientX, e.clientY);
+      light(spot ? spot.kind : null);
+    });
+
+    document.addEventListener('pointerleave', () => light(null));
+
+    patch.addEventListener('click', (e) => {
+      if (beeTalking()) return;
+      const spot = flowerAt(e.clientX, e.clientY);
+      if (!spot) return;
+      pick(spot.kind);
+    });
+
+    function copyMark(m) {
+      return { c: m.c, w: m.w, g: (m.g || []).map((run) => run.slice()) };
+    }
+
+    function pick(kind) {
+      picked = kind;
+      // Start from what this kind is wearing now, not from bare paper.
+      const rec = styles[kind];
+      fills = rec ? rec.f.slice() : UF.defaults(kind);
+      cuts = rec && rec.c ? rec.c.slice() : UF.blank().c;
+      marks = rec ? rec.m.map(copyMark) : [];
+      acts = [];
+      undone = [];
+      markPicked();
+      renderPad();
+    }
+
+    const PAINT_MS = 700;
+
+    addBtn.addEventListener('click', (e) => {
+      if (!picked) return;
+        // e.detail is 0 for a keyboard press; a real click should not stay focused.
+      if (e.detail) addBtn.blur();
+
+      const rec = { f: fills.slice(), c: cuts.slice(), m: marks.map(copyMark) };
+      styles[picked] = rec;
+      UF.save(styles);
+      UF.paint(patchSvg, picked, rec, PAINT_MS);
+
+      picked = null;
+      fills = UF.blank().f;
+      cuts = UF.blank().c;
+      marks = [];
+      acts = [];
+      undone = [];
+      markPicked();
+      renderPad();
+    });
+
+    setTool('fill');
+    renderPad();
+  })();
+  </script>
+
+  <script>loadLocal('js/scene/bee.js');</script>
+
+  <script>
+    Bee.say({ bubble: document.getElementById('beeIntro'), once: 'seenIntroDraw2' });
+  </script>
+
+</body>
+</html>

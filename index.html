@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>rolands barkans</title>
+  
+  <!-- Inline, so the browser's automatic /favicon.ico request does not 404. -->
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23D3DBFF'/%3E%3Crect x='14.6' y='21' width='2.8' height='6' rx='1' fill='%235F4133'/%3E%3Cpath d='M16 4l6 8h-3.4l5 7h-4.2l4.6 6H8l4.6-6H8.4l5-7H10z' fill='%23628E05'/%3E%3C/svg%3E">
+
+  <!-- The shell: a frame filling the window with one room in it, so the <audio> outlives the room. The frame must stay exactly the window's size at 0,0 — the player card is positioned in its coordinates. -->
+
+  <style>
+    html, body {
+      margin: 0;
+      height: 100%;
+      overflow: hidden;
+      /* The campsite's sky, so the first paint is not white. */
+      background: #D3DBFF;
+    }
+
+    .room {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      border: 0;
+      display: block;
+      z-index: 1;
+    }
+
+    /* Behind rather than hidden: browsers may skip rendering work for anything invisible. */
+    .room.building {
+      z-index: 0;
+      pointer-events: none;
+    }
+  </style>
+
+  <script src="js/core/boot.js"></script>
+  <script>
+    loadLocal('js/core/music.js');
+
+    /* The panel and card are drawn here, so a pointer over them leaves the room's cursor:none. */
+    loadLocal('css/scene/bee.css');
+  </script>
+</head>
+<body>
+
+  <script>
+    /* Each room gets its own frame, swapped once painted, and one history entry differing only by hash. */
+    (function () {
+      const DEFAULT_ROOM = 'main.html';
+
+      let current = null;   // the frame you are looking at
+      let building = null;  // the frame being loaded underneath it
+
+            /* A frame does not get the keyboard just by being on screen. Not while the card is open. */
+      function giveRoomFocus() {
+        if (!current) return;
+        try {
+          const music = window.CampsiteMusic;
+          if (music && music.isPlayerOpen && music.isPlayerOpen()) return;
+          current.contentWindow.focus();
+        } catch (err) {
+          /* frame gone or unreadable */
+        }
+      }
+
+      window.addEventListener('focus', giveRoomFocus);
+
+      // music.js calls this when the card closes and hands the keyboard back.
+      window.__campsiteFocusRoom = giveRoomFocus;
+
+            /* The panel's buttons park the keyboard here without opening the card; the delay lets one that does open it be seen as open. */
+      document.addEventListener('click', function () {
+        setTimeout(giveRoomFocus, 0);
+      });
+
+            /* Only Enter: music.js already listens for the arrows here. */
+      document.addEventListener('keydown', function (e) {
+        if (e.key !== 'Enter' || !current) return;
+        try {
+          const room = current.contentDocument;
+          if (!room) return;
+          room.dispatchEvent(new current.contentWindow.KeyboardEvent('keydown', {
+            key: 'Enter', code: 'Enter', bubbles: true
+          }));
+        } catch (err) {
+          /* frame not readable */
+        }
+      });
+
+      // The hash is the one part of the address a visitor can type.
+      function wanted() {
+        const asked = decodeURIComponent(location.hash.replace(/^#/, ''));
+        return /^[\w-]+\.html$/.test(asked) ? asked : DEFAULT_ROOM;
+      }
+
+      function roomOf(frame) {
+        try {
+          return frame.contentWindow.location.pathname.split('/').pop();
+        } catch (err) {
+          return null;
+        }
+      }
+
+            /* location.replace() rather than .src, or Back lands inside the frame's own history. A fresh stamp per room, since this document now lasts the whole visit. */
+      function build(page) {
+        const frame = document.createElement('iframe');
+        frame.className = 'room building';
+        frame.title = "Rolands' campsite";
+        document.body.appendChild(frame);
+        const stamp = window.CAMPSITE_V === '1' ? '1' : Date.now();
+        frame.contentWindow.location.replace(page + '?v=' + stamp);
+        return frame;
+      }
+
+        // `record` is false when the history entry already exists.
+      function show(page, record) {
+        if (building) {
+          // Somewhere new was asked for while the last one was still loading.
+          building.remove();
+          building = null;
+        }
+
+        const next = build(page);
+        building = next;
+
+        function commit() {
+          if (building !== next) return;
+          building = null;
+
+          const old = current;
+          current = next;
+          next.classList.remove('building');
+          if (old && old !== next) old.remove();
+
+          giveRoomFocus();
+
+          try {
+            const title = next.contentDocument.title;
+            if (title) document.title = title;
+          } catch (err) {
+            /* unreadable — leave the title alone */
+          }
+
+          if (record) history.pushState(null, '', '#' + page);
+        }
+
+        next.addEventListener('load', function () {
+          if (building !== next) return;   // abandoned mid-flight
+
+                      /* Two frames, plus a timer: animation frames stop in a background tab. */
+          requestAnimationFrame(function () {
+            requestAnimationFrame(commit);
+          });
+          setTimeout(commit, 250);
+        });
+      }
+
+            /* go() inside a frame calls this instead of navigating itself; see music.js. */
+      window.__campsiteGo = function (page) {
+        if (!page || !/^[\w-]+\.html$/.test(page)) return;
+        if (page === roomOf(current)) return;
+        show(page, true);
+      };
+
+      // The room on screen. Asked for each time, since the frame is rebuilt on every move.
+      window.__campsiteRoom = function () {
+        try {
+          return current && current.contentWindow;
+        } catch (err) {
+          return null;
+        }
+      };
+
+            /* Back, forward or a pasted link: nothing reloaded, so only the room is wrong. */
+      window.addEventListener('hashchange', function () {
+        const page = wanted();
+        if (page === roomOf(current)) return;
+        show(page, false);
+      });
+
+      show(wanted(), false);
+    })();
+  </script>
+
+  <script>
+        /* A second bee for the shell's own furniture, copying the room bee's transform and drawing. bee.js calls __campsiteBeeHome once a pointermove lands in the room again. */
+    (function () {
+      'use strict';
+
+      var stand = null;   // the shell's copy of the bee
+      var mirror = 0;     // the rAF that keeps it in step
+
+      function roomBee() {
+        try {
+          var room = window.__campsiteRoom && window.__campsiteRoom();
+          var Bee = room && room.Bee;
+          return Bee && Bee.el ? Bee : null;
+        } catch (err) {
+          return null;
+        }
+      }
+
+        // Built on the first move onto the furniture, the only moment a room is definitely there to copy from.
+      function build(bee) {
+        stand = document.createElement('div');
+        stand.className = 'bee-cursor';
+        stand.innerHTML = bee.el.innerHTML;
+        stand.style.opacity = '0';
+        document.body.appendChild(stand);
+      }
+
+        // Every frame, not only on pointermove: the tilt eases back over several frames.
+      function follow() {
+        var bee = roomBee();
+        if (stand && bee) stand.style.transform = bee.el.style.transform;
+        mirror = requestAnimationFrame(follow);
+      }
+
+        // The frame covers the window, so anything reaching this document is on the furniture.
+      document.addEventListener('pointermove', function (e) {
+        var bee = roomBee();
+        if (!bee) return;
+
+          // Keep the real bee underneath in step, so there is no jump on handover.
+        bee.moveTo(e.clientX, e.clientY);
+
+        if (!stand) build(bee);
+        if (stand.style.opacity !== '1') {
+          stand.style.opacity = '1';
+          if (!mirror) follow();
+        }
+      });
+
+        // Faded rather than removed: it is wanted again on the next visit to the corner.
+      window.__campsiteBeeHome = function () {
+        if (!stand) return;
+        stand.style.opacity = '0';
+        cancelAnimationFrame(mirror);
+        mirror = 0;
+      };
+    })();
+  </script>
+
+</body>
+</html>

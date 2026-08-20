@@ -1,0 +1,143 @@
+/* The daytime sky, drawn under night.css: the night fades in over this rather than replacing it. */
+
+:root {
+  --day-high: #A9C4F2;
+  --day-mid: #CBDCF7;
+  --day-low: #F3E7D2;
+  --sun-reach: 62%;
+  --sun-warm: 0.13;
+  --sun-x: 50%;
+  --sun-y: 14%;
+}
+
+.day-layer {
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  overflow: hidden;
+  /* --to-night / --to-day are declared in css/sky/night.css. */
+  opacity: 1;
+  transition: opacity var(--to-day) ease;
+  background: linear-gradient(
+    180deg,
+    var(--day-high) 0%,
+    var(--day-mid) 38%,
+    #DCE8F8 62%,
+    #EDEAE0 84%,
+    var(--day-low) 100%
+  );
+}
+
+body.night .day-layer {
+  opacity: 0;
+  transition: opacity var(--to-night) ease;
+}
+
+.day-scenebox {
+  position: fixed;
+  pointer-events: none;
+}
+
+.sun {
+  position: absolute;
+  left: var(--sky-x, 46%);
+  top: var(--sky-y, 11%);
+  width: var(--sky-size, 6.4%);
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+}
+
+.sun-disc {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(255, 244, 206, 0.62) 0%,
+    rgba(255, 236, 178, 0.56) 44%,
+    rgba(255, 228, 160, 0.34) 62%,
+    rgba(255, 222, 152, 0.12) 80%,
+    rgba(255, 220, 150, 0) 100%
+  );
+}
+
+.sun-halo {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 520%;
+  height: 520%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(255, 238, 186, 0.30) 0%,
+    rgba(255, 230, 162, 0.15) 28%,
+    rgba(255, 220, 145, 0.05) 54%,
+    rgba(255, 218, 145, 0) 76%
+  );
+  animation: sun-breathe 26s ease-in-out infinite;
+}
+
+@keyframes sun-breathe {
+  0%   { opacity: 0.9;  transform: translate(-50%, -50%) scale(0.98); }
+  50%  { opacity: 1;    transform: translate(-50%, -50%) scale(1.03); }
+  100% { opacity: 0.9;  transform: translate(-50%, -50%) scale(0.98); }
+}
+
+.cloud {
+  position: absolute;
+  left: 0;
+  top: var(--y, 20%);
+  width: var(--w, 12vw);
+
+  height: calc(var(--w, 12vw) * 0.42);
+  opacity: 0;
+  animation: cloud-drift var(--dur, 200s) linear var(--delay, 0s) infinite;
+}
+
+@keyframes cloud-drift {
+  0%   { opacity: 0; transform: translateX(-25vw); }
+  10%  { opacity: var(--dim, 0.3); }
+  88%  { opacity: var(--dim, 0.3); }
+  100% { opacity: 0; transform: translateX(125vw); }
+}
+
+.day-warm {
+  position: fixed;
+  inset: 0;
+  z-index: 499;
+  pointer-events: none;
+  mix-blend-mode: screen;
+  opacity: 1;
+  transition: opacity var(--to-day) ease;
+  background: radial-gradient(
+    circle var(--sun-reach) at var(--sun-x) var(--sun-y),
+    rgba(255, 240, 190, calc(var(--sun-warm) * 1)) 0%,
+    rgba(255, 228, 160, calc(var(--sun-warm) * 0.6)) 38%,
+    rgba(255, 216, 150, calc(var(--sun-warm) * 0.22)) 68%,
+    rgba(255, 210, 150, 0) 100%
+  );
+}
+
+body.night .day-warm {
+  opacity: 0;
+  transition: opacity var(--to-night) ease;
+}
+
+body.night-instant .day-layer,
+body.night-instant .day-warm {
+  transition: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sun-halo {
+    animation: none;
+  }
+  .cloud {
+    opacity: var(--dim, 0.3);
+    animation: none;
+    transform: translateX(var(--still-x, 30vw));
+  }
+}

@@ -1,0 +1,68 @@
+/* The wooden sign over a clickable object, placed with --tag-x / --tag-y / --tag-tilt. --tag-size if the room's scene is a different size from the campsite's. */
+
+.tag {
+  position: absolute;
+  left: var(--tag-x, 50%);
+  top: var(--tag-y, -0.4vw);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transform: translate(-50%, calc(-100% + 0.5em));
+  opacity: 0;
+  pointer-events: none;
+  white-space: nowrap;
+  font-family: 'Yomogi', cursive;
+  font-size: var(--tag-size, 1.35vw);
+  line-height: 1;
+  transition: opacity 0.14s ease, transform 0.14s ease;
+  z-index: 5;
+}
+
+.hotspot.lit .tag {
+  opacity: 1;
+  transform: translate(-50%, -100%);
+  transition: opacity 0.2s ease 0.02s,
+              transform 0.34s cubic-bezier(0.22, 0.9, 0.3, 1);
+}
+
+.tag-card {
+  position: relative;
+  padding: 0.34em 0.78em 0.38em;
+  color: #4A2A08;
+  background: #EAC68C;
+  border: 0.085em solid #5B3511;
+  border-radius: 0.85em 0.6em 0.75em 0.55em / 0.6em 0.85em 0.5em 0.7em;
+  box-shadow: 0 0.16em 0 #C89A5B,
+              0 0.3em 0.45em rgba(45, 30, 10, 0.22);
+  transform: rotate(var(--tag-tilt, -2deg)) scale(0.9);
+  transition: transform 0.16s ease;
+}
+
+.hotspot.lit .tag-card {
+  transform: rotate(var(--tag-tilt, -2deg)) scale(1);
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) 0.02s;
+}
+
+/* Warmer and lit from within after dark, so it does not sink into a blue room. */
+html.night .tag-card {
+  background: #F7E3B0;
+  border-color: #6A3F16;
+  box-shadow: 0 0.16em 0 #D2A868,
+              0 0.3em 0.45em rgba(10, 12, 30, 0.5),
+              0 0 1.2em rgba(255, 214, 138, 0.6);
+}
+
+.tag-word {
+  display: block;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tag,
+  .hotspot.lit .tag {
+    transform: translate(-50%, -100%);
+  }
+  .tag-card,
+  .hotspot.lit .tag-card {
+    transform: rotate(var(--tag-tilt, -2deg));
+  }
+}

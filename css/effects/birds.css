@@ -1,0 +1,88 @@
+/* The flock that breaks out of a tree. Built by js/effects/birds.js. */
+
+.birds {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.bird {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  width: var(--size);
+  will-change: transform, opacity;
+  animation: bird-fly var(--dur) cubic-bezier(0.2, 0.5, 0.7, 1) var(--delay) both;
+}
+
+.bird-bob {
+  display: block;
+  animation: bird-bob var(--bob-dur) ease-in-out var(--delay) infinite alternate;
+}
+
+.bird-tilt {
+  display: block;
+  transform: rotate(var(--tilt));
+  animation: bird-bank calc(var(--flap) * 2) ease-in-out var(--delay) infinite;
+}
+
+.bird-body {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.bird-wing {
+  transform-box: view-box;
+  transform-origin: 32px 18px;
+}
+
+.bird-wing-near {
+  animation: bird-flap-near var(--flap) ease-in-out var(--delay) infinite;
+}
+
+.bird-wing-far {
+  animation: bird-flap-far var(--flap) ease-in-out var(--delay) infinite;
+}
+
+@keyframes bird-fly {
+  0% {
+    transform: translate(0, 0);
+    opacity: 0;
+  }
+  4% {
+    opacity: 1;
+  }
+  88% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--fly-x), var(--fly-y));
+    opacity: 0;
+  }
+}
+
+@keyframes bird-bob {
+  from { transform: translateY(calc(var(--bob) * -1)); }
+  to   { transform: translateY(var(--bob)); }
+}
+
+@keyframes bird-bank {
+  0%, 100% { transform: rotate(var(--tilt)); }
+  50%      { transform: rotate(calc(var(--tilt) + var(--bank))); }
+}
+
+@keyframes bird-flap-near {
+  0%, 100% { transform: rotate(-56deg) scaleX(1); }
+  50%      { transform: rotate(48deg) scaleX(0.86); }
+}
+
+@keyframes bird-flap-far {
+  0%, 100% { transform: rotate(-68deg) scaleX(0.96); }
+  50%      { transform: rotate(38deg) scaleX(0.84); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bird { display: none; }
+}
