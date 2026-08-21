@@ -504,7 +504,7 @@
     } catch (err) { /* storage blocked */ }
   }
 
-  function paint(list) {
+  function paint(list, trusted) {
     marks.forEach(function (m) { map.removeLayer(m); });
     marks = [];
 
@@ -518,17 +518,24 @@
       else addMark(h);
     });
 
-    // Anything left here never reached the database — show it anyway.
+    // A remembered hike the server no longer lists has been deleted since, so
+    // let it go. Only ones that never reached the database are kept.
     mine().forEach(function (h) {
-      if (h.id == null || !seen[h.id]) addMark(h, 'mine');
+      if (h.id == null) addMark(h, 'mine');
+      else if (!seen[h.id] && trusted) forget(h.id);
+      else if (!seen[h.id]) addMark(h, 'mine');
     });
   }
 
   function load() {
     fetch(API, { headers: { accept: 'application/json' } })
-      .then(function (r) { return r.ok ? r.json() : []; })
-      .then(function (list) { paint(Array.isArray(list) ? list : []); })
-      .catch(function () { paint([]); });
+      .then(function (r) {
+        // Only an answered request may retire a remembered hike.
+        if (!r.ok) throw new Error('unavailable');
+        return r.json();
+      })
+      .then(function (list) { paint(Array.isArray(list) ? list : [], true); })
+      .catch(function () { paint([], false); });
   }
 
   function send() {

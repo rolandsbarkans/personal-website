@@ -1,0 +1,9 @@
+# Code must never be served stale: a deploy changes the file but not its URL.
+/js/*
+  Cache-Control: public, max-age=0, must-revalidate
+
+/css/*
+  Cache-Control: public, max-age=0, must-revalidate
+
+/*.html
+  Cache-Control: public, max-age=0, must-revalidate
