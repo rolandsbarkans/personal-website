@@ -1,3 +1,3 @@
-# personal website
+# Personal Website
 
-see here: [rolandsbarkans.com](https://rolandsbarkans.com)
+See it here: [rolandsbarkans.com](https://rolandsbarkans.com)
