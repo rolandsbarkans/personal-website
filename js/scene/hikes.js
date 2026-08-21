@@ -40,7 +40,7 @@
   var countryIn, countryRow, turnstileBox;
   var map = null, built = false;
   var WORLD = null;
-  var placing = false, dropped = null, sending = false;
+  var placing = false, dropped = null, sending = false, asking = false;
   var marks = [];
 
   function el(tag, cls) {
@@ -331,7 +331,7 @@
       html: PIN,
       iconSize: [26, 36],
       iconAnchor: [13, 36],
-      tooltipAnchor: [0, -34]
+      tooltipAnchor: [0, -46]
     });
   }
 
@@ -375,7 +375,7 @@
                   (h.author ? esc(h.author) : 'anonymous hiker') +
                   (flag ? ' <em>' + flag + '</em>' : '') + '</span>',
                   { className: 'hike-note', closeButton: false,
-                    offset: [0, -30], maxWidth: 260, autoPan: true });
+                    offset: [0, -42], maxWidth: 260, autoPan: true });
     }
     /* Leaflet reopens a tooltip on click, so closing the note would pop the
        little sign straight back up beside the pin. Hold it back until the
@@ -414,6 +414,8 @@
 
     L.DomEvent.on(b, 'click', function (e) {
       L.DomEvent.stop(e);
+      // or Enter would keep re-activating the still-focused button
+      b.blur();
       confirmErase(m, h, own);
     });
     L.DomEvent.disableClickPropagation(b);
@@ -422,7 +424,9 @@
   }
 
   function confirmErase(m, h, own) {
+    if (asking) return;
     if (!window.Bee || !window.Bee.say) { erase(m, h, own); return; }
+    asking = true;
 
     m.closeTooltip();
     m.closePopup();
@@ -440,6 +444,7 @@
       delay: 0,
       keys: ['y', 'n'],
       onDone: function (answer) {
+        asking = false;
         bubble.remove();
         if (answer === 'y') erase(m, h, own);
       }

@@ -221,7 +221,7 @@ html.hike-placing .hike-map .leaflet-container { cursor: crosshair; }
 /* The cross on a pin this visitor left. */
 .hike-erase {
   position: absolute;
-  top: -9px;
+  top: -4px;
   right: -11px;
   width: 18px;
   height: 18px;
@@ -241,10 +241,16 @@ html.hike-placing .hike-map .leaflet-container { cursor: crosshair; }
   z-index: 2;
 }
 
+
 .hike-erase svg { width: 60%; display: block; }
 
 .hike-marker:hover .hike-erase,
 .hike-erase:focus-visible { opacity: 1; }
+
+/* Tooltips live in a pane above the markers, so a hovered pin is lifted over
+   it — otherwise the sign covers its own cross. !important because Leaflet
+   writes the stacking order inline. */
+.hike-marker:hover { z-index: 700 !important; }
 
 .hike-erase:hover {
   transform: scale(1.15);
