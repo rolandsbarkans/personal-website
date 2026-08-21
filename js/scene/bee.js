@@ -207,6 +207,8 @@
     var onDone = options.onDone || function () {};
     var wantDim = options.dim !== false;
     var delay = options.delay == null ? 1500 : options.delay;
+    // A set of keys to answer with, instead of Enter to dismiss.
+    var keys = options.keys || null;
 
     if (seenKey && localStorage.getItem(seenKey) === '1') {
       if (bubble) bubble.remove();
@@ -302,13 +304,7 @@
 
       timer = setTimeout(next, WAIT);
 
-      document.addEventListener('keydown', function key(e) {
-        if (e.key !== 'Enter') return;
-        if (typing) {
-          finish();
-          return;
-        }
-        document.removeEventListener('keydown', key);
+      function close(answer) {
         stopFollowing();
         stopTalking();
         dim.classList.remove('visible');
@@ -317,7 +313,26 @@
 
         setTimeout(function () { dim.remove(); }, 600);
         if (seenKey) localStorage.setItem(seenKey, '1');
-        onDone();
+        onDone(answer);
+      }
+
+      document.addEventListener('keydown', function key(e) {
+        if (keys) {
+          var pressed = String(e.key).toLowerCase();
+          if (keys.indexOf(pressed) < 0) return;
+          if (typing) finish();
+          document.removeEventListener('keydown', key);
+          close(pressed);
+          return;
+        }
+
+        if (e.key !== 'Enter') return;
+        if (typing) {
+          finish();
+          return;
+        }
+        document.removeEventListener('keydown', key);
+        close();
       });
     }
 

@@ -19,6 +19,8 @@
     loadLocal('css/scene/tag.css');
     loadLocal('css/scene/bee.css');
     loadLocal('css/sky/nightrooms.css');
+    loadLocal('css/vendor/leaflet.css');
+    loadLocal('css/scene/hikes.css');
     loadLocal('js/sky/nightrooms.js');
   </script>
 
@@ -614,15 +616,15 @@
                 <p class="bio-p">my name is rolands. i'm a senior studying  
                   <mark>data science</mark> at minerva university, though i'm also
                   interested in <mark>environmental sustainability</mark> and have a soft
-                  spot for <mark>automation</mark>. both, in my opinion, are aimed at
-                  <mark>humans</mark>, making their lives safer and easier.</p>
+                  spot for <mark>automation</mark>. what connects them, at least the way i see it, 
+                  is <mark>humans</mark>, because one keeps the world livable and the other makes daily life easier.</p>
               </section>
 
               <section class="bio-panel" data-title="why a campsite">
-                <p class="bio-p">i chose the theme of my personal website to be
-                  <mark>nature</mark> because i love exploring different corners of the
-                  world on foot, whether that's <mark>hiking</mark> through mountains or
-                  just being present in whatever green space there is. my friends know that i love
+                <p class="bio-p">i chose the theme of my personal website to be <mark>nature</mark> because i 
+                  enjoy being surrounded by it, whether that's <mark>hiking</mark> or spending time 
+                  in whatever green space there is nearby (also, perhaps this website is a reminder 
+                  to go outside more). my friends know that i'm a big fan of  
                   <mark>the city</mark> too, for the convenience and social opportunities,
                   but nature is where i find myself most at peace and i wanted this space
                   to feel similar.</p>
@@ -644,7 +646,7 @@
                   <mark>hiking spot</mark> on the map, so i can experience it too!</p>
 
                 <div class="bio-actions">
-                  <button class="bio-button" type="button">suggest a hike</button>
+                  <button class="bio-button" type="button" onclick="openHikes()">suggest a hike</button>
                 </div>
               </section>
 
@@ -784,6 +786,16 @@
   </script>
 
   <script>loadLocal('js/scene/bee.js');</script>
+  <script>loadLocal('js/data/mapkey.js');</script>
+  <script>loadLocal('js/data/countries.js');</script>
+  <script>loadLocal('js/vendor/leaflet.js');</script>
+  <script>loadLocal('js/scene/hikes.js');</script>
+
+  <script>
+    function openHikes() {
+      if (window.Hikes) window.Hikes.open();
+    }
+  </script>
 
 </body>
 </html>
