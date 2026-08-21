@@ -1,11 +1,12 @@
 /* The cache stamp, the local-file loader and the door from one room to the next. Loaded with a plain <script src> because it defines loadLocal. */
 
-// Local: a new stamp every load. Deployed: '1' — bump it to force a refresh.
+// Local: a new stamp every load. Deployed: a constant that must match the
+// ?v= on this file's own script tag — run tools/bump.sh to raise both.
 window.CAMPSITE_V =
   location.protocol === 'file:' ||
   /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname)
     ? Date.now()
-    : '2';
+    : '3';
 
 // document.write keeps each file parser-blocking and in order.
 window.loadLocal = function (src) {
