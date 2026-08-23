@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Kosugi+Maru&family=Yomogi&display=swap" rel="stylesheet">
 
-  <script src="js/core/boot.js?v=3"></script>
+  <script src="js/core/boot.js?v=4"></script>
   <script>
     loadLocal('js/core/assets.js');
     loadLocal('js/core/music.js');
@@ -441,39 +441,41 @@
     .bio-p { margin: 0 0 1.2cqw; font-size: 2.15cqw; line-height: 1.58; }
     .bio-p:last-of-type { margin-bottom: 0; }
 
-    /* Amber for the work, clay for something in the campsite that can be clicked. */
+    /* Green for the work, clay for something in the campsite that can be clicked.
+       The band is the height of the letters and sits ON them. 0.42em is measured,
+       not guessed: Yomogi's inline box is much taller than its writing, so a
+       gradient stop — or any round number — hangs the band off the word. */
     .bio-p mark,
     .bio-lede mark {
       color: inherit;
+      /* mark comes with a yellow background of its own; only the band below. */
+      background-color: transparent;
       padding: 0 0.14em;
       border-radius: 0.2em;
-      background: linear-gradient(rgba(234, 198, 140, 0) 52%,
-                                  rgba(234, 198, 140, 0.85) 52%);
+      background-image: linear-gradient(rgba(176, 205, 96, 0.7), rgba(176, 205, 96, 0.7));
+      background-repeat: no-repeat;
+      background-size: 100% 0.86em;
+      background-position: 0 0.42em;
     }
 
     .bio-p mark.spot {
       font-weight: 700;
-      background: linear-gradient(rgba(168, 68, 47, 0) 52%,
-                                  rgba(168, 68, 47, 0.26) 52%);
+      background-image: linear-gradient(rgba(168, 68, 47, 0.3),
+                                        rgba(168, 68, 47, 0.3));
     }
 
-    /* The ones that are doors, not just names of things in the campsite: the
-       clay rises from an underline to fill the word. */
+    /* The ones that are doors, not just names of things in the campsite. */
     .bio-p mark.spot[data-goes] {
       cursor: pointer;
-      background-image: linear-gradient(rgba(168, 68, 47, 0.92),
-                                        rgba(168, 68, 47, 0.92));
-      background-repeat: no-repeat;
-      background-position: 0 100%;
-      background-size: 100% 48%;
-      transition: background-size 0.18s ease, color 0.18s ease;
+      transition: color 0.16s ease;
     }
 
     .bio-p mark.spot[data-goes]:hover,
     .bio-p mark.spot[data-goes]:focus-visible {
       color: #FBF1DC;
       outline: none;
-      background-size: 100% 100%;
+      background-image: linear-gradient(rgba(168, 68, 47, 0.9),
+                                        rgba(168, 68, 47, 0.9));
     }
 
         .bio-nav {
@@ -665,8 +667,8 @@
 
               <section class="bio-panel" data-title="one more thing">
                 <p class="bio-p">oh, and don't forget to check out what
-                  <mark>music</mark> i was listening to while building this (click the
-                  <mark class="spot">airpods</mark> in the back). and drop your favorite
+                  <mark>music</mark> i was listening to while building this (click the 
+                  airpods in the back). and drop your favorite
                   <mark>hiking spot</mark> on the map, so i can one day experience it too!</p>
 
                 <div class="bio-actions">

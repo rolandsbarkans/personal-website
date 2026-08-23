@@ -6,7 +6,7 @@ window.CAMPSITE_V =
   location.protocol === 'file:' ||
   /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname)
     ? Date.now()
-    : '3';
+    : '4';
 
 // document.write keeps each file parser-blocking and in order.
 window.loadLocal = function (src) {

@@ -1,0 +1,909 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>rolands barkans</title>
+
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23D3DBFF'/%3E%3Crect x='14.6' y='21' width='2.8' height='6' rx='1' fill='%235F4133'/%3E%3Cpath d='M16 4l6 8h-3.4l5 7h-4.2l4.6 6H8l4.6-6H8.4l5-7H10z' fill='%23628E05'/%3E%3C/svg%3E">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand+SC&family=Yomogi&display=swap" rel="stylesheet">
+
+  <script src="js/core/boot.js?v=4"></script>
+  <script>
+    loadLocal('js/core/assets.js');
+    loadLocal('js/core/device.js');
+    loadLocal('js/data/projects.js');
+    loadLocal('js/data/expertise.js');
+  </script>
+
+  <style>
+    /* The campsite read as a document rather than a place. The scrolling part
+       is laid out in rem, not percentages: it is a page of text, and only the
+       little camp in the footer is a scene with things positioned in it. */
+
+    :root {
+      --paper: #FFFDF4;
+      --paper-lip: #C89A5B;
+      --ink: #3A2A16;
+      --ink-soft: #7A6144;
+      --clay: #A8442F;
+
+      --plank: #EAC68C;
+      --plank-lip: #C89A5B;
+      --plank-line: #5B3511;
+      --plank-ink: #4A2A08;
+
+      /* map.html's two pens, so a field is the same colour in both views. */
+      --comp: #2A6390;
+      --env: #3B6B1B;
+
+      --gap: 1.15rem;
+      --round: 1.5rem 1rem 1.6rem 1.2rem / 1.1rem 1.6rem 1rem 1.5rem;
+    }
+
+    * { -webkit-tap-highlight-color: transparent; }
+
+    html { -webkit-text-size-adjust: 100%; }
+
+    /* The width/height attributes on the artwork are there to reserve its space
+       while it loads. Without this they would also pin its height, and every
+       drawing sized by its width alone would come out squashed. */
+    img { height: auto; }
+
+    body {
+      margin: 0;
+      background-color: #CBDCF7;
+      font-family: 'Yomogi', cursive;
+      color: var(--ink);
+      overflow-x: hidden;
+    }
+
+    /* ---- the sky, fixed behind the whole scroll ---- */
+
+    .sky {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      background: linear-gradient(180deg,
+        #A9C4F2 0%, #CBDCF7 38%, #DCE8F8 62%, #EDEAE0 84%, #F3E7D2 100%);
+    }
+
+    /* ---- the column ---- */
+
+    .page {
+      position: relative;
+      z-index: 2;
+      max-width: 33rem;
+      margin: 0 auto;
+      /* The last card wants the same air under it as the sections have between
+         them, clear of the home indicator on a phone that has one. */
+      padding: 0 var(--gap) max(3rem, calc(env(safe-area-inset-bottom) + 2.4rem));
+      box-sizing: border-box;
+    }
+
+    /* ---- the way out, at the very top ---- */
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin: max(0.9rem, env(safe-area-inset-top)) 0 0;
+      padding: 0.7rem 0.9rem 0.75rem;
+      text-decoration: none;
+      color: var(--plank-ink);
+      background: var(--plank);
+      border: 2px solid var(--plank-line);
+      border-radius: 1rem 0.7rem 0.9rem 0.75rem / 0.7rem 1rem 0.65rem 0.9rem;
+      box-shadow: 0 4px 0 var(--plank-lip), 0 8px 14px rgba(45, 30, 10, 0.22);
+    }
+
+    .topbar:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--plank-lip); }
+
+    .topbar-words { flex: 1 1 auto; min-width: 0; }
+    .topbar-lead { display: block; font-size: 1rem; line-height: 1.2; }
+
+    .topbar-note {
+      display: block;
+      margin-top: 0.15rem;
+      font-size: 0.78rem;
+      line-height: 1.25;
+      opacity: 0.72;
+    }
+
+    .topbar-arrow {
+      flex: 0 0 auto;
+      width: 2.1rem;
+      height: 2.1rem;
+      display: grid;
+      place-items: center;
+      border: 2px solid var(--plank-line);
+      border-radius: 50%;
+      background: #F7E3B0;
+    }
+
+    .topbar-arrow svg { display: block; width: 55%; }
+
+    /* ---- hero ---- */
+
+    .hero { padding: 2.1rem 0 0.4rem; text-align: center; }
+
+    .hero-photo {
+      width: 7.4rem;
+      height: 7.4rem;
+      margin: 0 auto 1rem;
+      overflow: hidden;
+      background: #EFE7D2;
+      border: 3px solid var(--ink);
+      border-radius: 2rem 1.4rem 2.1rem 1.6rem / 1.5rem 2.1rem 1.4rem 2rem;
+      box-shadow: 0 5px 0 var(--paper-lip), 0 10px 18px rgba(45, 30, 10, 0.3);
+      transform: rotate(-2.6deg);
+    }
+
+    .hero-photo img { display: block; width: 100%; height: 100%; object-fit: cover; }
+
+    .hero-name {
+      margin: 0;
+      font-size: 2.15rem;
+      line-height: 1.12;
+      font-weight: 700;
+    }
+
+    .hero-role {
+      margin: 0.5rem 0 0;
+      font-size: 1rem;
+      line-height: 1.45;
+      color: var(--ink-soft);
+    }
+
+    .hero-role b { color: var(--clay); font-weight: 700; }
+
+    .hero-facts {
+      margin: 1.05rem 0 0;
+      font-size: 0.85rem;
+      line-height: 1.45;
+      color: var(--ink-soft);
+    }
+
+    .hero-facts div + div { margin-top: 0.2rem; }
+    .hero-facts dt { display: inline; opacity: 0.72; }
+    .hero-facts dd { display: inline; margin: 0 0 0 0.35rem; }
+    .hero-facts .now { color: var(--clay); font-weight: 700; }
+
+    /* ---- a section: sign, a piece of the campsite, then paper ---- */
+
+    .sect { padding: 2.4rem 0 0; }
+
+    .sect-head {
+      margin: 0 0 0.95rem;
+      text-align: center;
+    }
+
+    /* The wooden sign from css/scene/tag.css, standing on its own here. */
+    .sign {
+      display: inline-block;
+      padding: 0.3em 0.75em 0.34em;
+      font-size: 1.02rem;
+      line-height: 1;
+      color: var(--plank-ink);
+      background: var(--plank);
+      border: 1.5px solid var(--plank-line);
+      border-radius: 0.85em 0.6em 0.75em 0.55em / 0.6em 0.85em 0.5em 0.7em;
+      box-shadow: 0 3px 0 var(--plank-lip), 0 6px 9px rgba(45, 30, 10, 0.22);
+      transform: rotate(-2deg);
+    }
+
+    .paper {
+      padding: 1.35rem 1.25rem 1.4rem;
+      background: var(--paper);
+      border: 2.5px solid var(--ink);
+      border-radius: var(--round);
+      box-shadow: 0 5px 0 var(--paper-lip), 0 10px 18px rgba(45, 30, 10, 0.3);
+    }
+
+    /* ---- about ---- */
+
+    .lede {
+      margin: 0 0 0.9rem;
+      font-size: 1.12rem;
+      line-height: 1.42;
+      color: var(--clay);
+    }
+
+    .para { margin: 0 0 0.85rem; font-size: 1rem; line-height: 1.6; }
+    .para:last-child { margin-bottom: 0; }
+
+    /* The band is the height of the letters and sits ON them. 0.42em is measured,
+       not guessed: Yomogi's inline box is much taller than its writing, so a
+       gradient stop — or any round number — hangs the band off the word. */
+    .para mark, .lede mark {
+      color: inherit;
+      /* mark comes with a yellow background of its own; only the band below. */
+      background-color: transparent;
+      padding: 0 0.14em;
+      border-radius: 0.2em;
+      background-image: linear-gradient(rgba(176, 205, 96, 0.7), rgba(176, 205, 96, 0.7));
+      background-repeat: no-repeat;
+      background-size: 100% 0.86em;
+      background-position: 0 0.42em;
+    }
+
+    /* ---- accordion, shared by expertise and projects ---- */
+
+    .drop { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.32s ease; }
+    .drop > div { overflow: hidden; }
+    .is-open > .drop { grid-template-rows: 1fr; }
+
+    .chev {
+      flex: 0 0 auto;
+      width: 0.62rem;
+      height: 0.62rem;
+      margin-left: auto;
+      border-right: 2.2px solid currentColor;
+      border-bottom: 2.2px solid currentColor;
+      transform: translateY(-0.14rem) rotate(45deg);
+      transition: transform 0.28s ease;
+      opacity: 0.66;
+    }
+
+    .is-open .chev { transform: translateY(0.1rem) rotate(-135deg); }
+
+    /* ---- expertise ---- */
+
+    .cards { list-style: none; margin: 0; padding: 0; }
+
+    .card + .card {
+      margin-top: 0.85rem;
+      padding-top: 0.85rem;
+      border-top: 1.5px dashed rgba(58, 42, 22, 0.28);
+    }
+
+    .card-btn {
+      display: flex;
+      align-items: center;
+      gap: 0.7rem;
+      width: 100%;
+      padding: 0.1rem 0;
+      font: inherit;
+      text-align: left;
+      color: var(--clay);
+      background: none;
+      border: 0;
+      -webkit-appearance: none;
+      appearance: none;
+      cursor: pointer;
+      font-family: 'Patrick Hand SC', cursive;
+      font-size: 1.24rem;
+      line-height: 1.22;
+    }
+
+    .card-points {
+      list-style: none;
+      margin: 0;
+      padding: 0.7rem 0 0.15rem;
+      font-size: 0.94rem;
+      line-height: 1.52;
+    }
+
+    .card-points li { position: relative; padding-left: 1rem; }
+    .card-points li + li { margin-top: 0.5rem; }
+
+    .card-points li::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0.6em;
+      width: 0.34rem;
+      height: 0.34rem;
+      border-radius: 50%;
+      background: var(--clay);
+    }
+
+    /* ---- projects ---- */
+
+    .filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.45rem;
+      margin: 0 0 1.05rem;
+    }
+
+    .chip {
+      font: inherit;
+      font-size: 0.88rem;
+      line-height: 1;
+      padding: 0.46em 0.85em 0.5em;
+      color: var(--ink-soft);
+      background: transparent;
+      border: 1.6px solid rgba(58, 42, 22, 0.3);
+      border-radius: 999px;
+      cursor: pointer;
+      -webkit-appearance: none;
+      appearance: none;
+      transition: color 0.16s ease, background 0.16s ease, border-color 0.16s ease;
+    }
+
+    .chip[data-filter="comp"].is-on { color: #fff; background: var(--comp); border-color: var(--comp); }
+    .chip[data-filter="env"].is-on  { color: #fff; background: var(--env);  border-color: var(--env); }
+    .chip[data-filter="all"].is-on  { color: var(--paper); background: var(--ink); border-color: var(--ink); }
+
+    .proj {
+      --pen: var(--comp);
+      padding: 0.7rem 0 0.72rem 0.85rem;
+      border-left: 3.5px solid var(--pen);
+    }
+
+    .proj.env { --pen: var(--env); }
+    .proj[hidden] { display: none; }
+    .proj + .proj { border-top: 1.5px dashed rgba(58, 42, 22, 0.22); }
+
+    .proj-btn {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.6rem;
+      width: 100%;
+      padding: 0;
+      font: inherit;
+      text-align: left;
+      background: none;
+      border: 0;
+      color: inherit;
+      cursor: pointer;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+
+    .proj-title { flex: 1 1 auto; font-size: 1.02rem; line-height: 1.32; font-weight: 700; }
+
+    .proj-year {
+      flex: 0 0 auto;
+      font-size: 0.8rem;
+      line-height: 1.5;
+      color: var(--ink-soft);
+      opacity: 0.85;
+    }
+
+    .proj .chev { margin-left: 0; margin-top: 0.22rem; }
+
+    .proj-where {
+      margin: 0.75rem 0 0;
+      font-size: 0.82rem;
+      line-height: 1.4;
+      color: var(--ink-soft);
+    }
+
+    .proj-tags {
+      list-style: none;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.32rem;
+      margin: 0.55rem 0 0;
+      padding: 0;
+    }
+
+    .proj-tags li {
+      font-size: 0.74rem;
+      line-height: 1;
+      padding: 0.36em 0.6em 0.4em;
+      color: var(--pen);
+      background: color-mix(in srgb, var(--pen) 12%, transparent);
+      border: 1.2px solid color-mix(in srgb, var(--pen) 55%, transparent);
+      border-radius: 999px;
+    }
+
+    .proj-text { margin: 0.65rem 0 0; font-size: 0.94rem; line-height: 1.55; }
+
+    .proj-links { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0.85rem 0 0.2rem; }
+
+    .proj-link {
+      font-size: 0.85rem;
+      line-height: 1;
+      padding: 0.55em 0.9em 0.6em;
+      text-decoration: none;
+      color: #fff;
+      background: var(--pen);
+      border-radius: 0.7em 0.5em 0.65em 0.45em / 0.5em 0.7em 0.42em 0.6em;
+    }
+
+    .proj-link:active { transform: translateY(1px); }
+
+    /* ---- planks: see-more, cv actions ---- */
+
+    .plank {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.45rem;
+      font: inherit;
+      font-size: 1rem;
+      line-height: 1;
+      padding: 0.72em 1.15em 0.76em;
+      text-decoration: none;
+      color: var(--plank-ink);
+      background: var(--plank);
+      border: 2px solid var(--plank-line);
+      border-radius: 1em 0.7em 0.9em 0.65em / 0.7em 1em 0.6em 0.85em;
+      box-shadow: 0 4px 0 var(--plank-lip), 0 7px 11px rgba(45, 30, 10, 0.22);
+      cursor: pointer;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+
+    .plank:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--plank-lip); }
+    .plank[hidden] { display: none; }
+
+    .proj-more { width: 100%; margin-top: 1.3rem; }
+
+    /* ---- cv ---- */
+
+    .cv-actions { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-top: 1.1rem; }
+    .cv-actions .plank { flex: 1 1 9rem; }
+
+    .plank.quiet {
+      background: transparent;
+      color: var(--ink);
+      border-color: rgba(58, 42, 22, 0.4);
+      box-shadow: none;
+    }
+
+    .plank.quiet:active { transform: translateY(2px); box-shadow: none; }
+
+    /* ---- contact ---- */
+
+    /* The marks printed on the protein-bar wrappers back at the campsite,
+       here as the links themselves. */
+    .links { display: grid; gap: 0.6rem; }
+
+    .linkrow {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.95rem 0.8rem;
+      background: rgba(234, 198, 140, 0.3);
+      border: 1.6px dashed rgba(58, 42, 22, 0.4);
+      border-radius: 0.8rem 0.6rem 0.75rem 0.55rem / 0.6rem 0.8rem 0.5rem 0.7rem;
+    }
+
+    .linkrow img { width: 58%; max-width: 10.5rem; }
+    .linkrow:active { transform: translateY(1px); background: rgba(234, 198, 140, 0.5); }
+
+    .mailrow {
+      display: flex;
+      align-items: center;
+      gap: 0.55rem;
+      width: 100%;
+      margin: 1.15rem 0 0;
+      padding: 0.62rem 0.8rem 0.66rem;
+      font: inherit;
+      font-size: 0.88rem;
+      line-height: 1.3;
+      text-align: left;
+      color: var(--ink);
+      background: rgba(234, 198, 140, 0.3);
+      border: 1.6px dashed rgba(58, 42, 22, 0.4);
+      border-radius: 0.8rem 0.6rem 0.75rem 0.55rem / 0.6rem 0.8rem 0.5rem 0.7rem;
+      cursor: pointer;
+      -webkit-appearance: none;
+      appearance: none;
+      box-sizing: border-box;
+    }
+
+    .mailrow span { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+    .mailrow small { flex: 0 0 auto; opacity: 0.6; font-size: 0.76rem; }
+
+    /* ---- the copied-email note ---- */
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: max(1.4rem, env(safe-area-inset-bottom));
+      z-index: 40;
+      padding: 0.6rem 1rem 0.65rem;
+      font-size: 0.9rem;
+      line-height: 1;
+      color: var(--plank-ink);
+      background: var(--plank);
+      border: 2px solid var(--plank-line);
+      border-radius: 0.9em 0.65em 0.8em 0.6em / 0.65em 0.9em 0.55em 0.8em;
+      box-shadow: 0 4px 0 var(--plank-lip), 0 8px 14px rgba(45, 30, 10, 0.3);
+      opacity: 0;
+      transform: translate(-50%, 0.6rem);
+      pointer-events: none;
+      transition: opacity 0.2s ease, transform 0.2s ease;
+    }
+
+    .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+    :focus-visible { outline: 2.5px dashed var(--clay); outline-offset: 3px; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .drop, .chev { transition: none !important; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="sky"></div>
+  <div class="page">
+
+    <a class="topbar" href="index.html?full=1">
+      <span class="topbar-words">
+        <span class="topbar-lead">see the full website</span>
+        <span class="topbar-note">best works on computer</span>
+      </span>
+      <span class="topbar-arrow" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none">
+          <path d="M7 17 L17 7 M9 7 h8 v8" stroke="currentColor" stroke-width="2.6"
+                stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </span>
+    </a>
+
+    <header class="hero">
+      <div class="hero-photo">
+        <img src="material/me.jpg" alt="Rolands Barkans" width="800" height="800">
+      </div>
+      <h1 class="hero-name">rolands barkans</h1>
+      <dl class="hero-facts">
+        <div><dt>currently based in</dt><dd class="now">Berlin</dd></div>
+        <div><dt>have spent time in</dt><dd>Riga, San Francisco, Taipei, Seoul, Buenos Aires, Hyderabad</dd></div>
+      </dl>
+    </header>
+
+    <section class="sect">
+      <div class="sect-head">
+        <span class="sign">about</span>
+      </div>
+
+      <div class="paper">
+        <p class="para">my name is rolands. i'm a senior studying <mark>data science</mark>
+          at minerva university, though i'm also interested in
+          <mark>environmental sustainability</mark> and have a soft spot for
+          <mark>automation</mark>. what connects them, at least the way i see it, is
+          <mark>humans</mark>, because one keeps the world livable and the other makes
+          daily life easier.</p>
+      </div>
+    </section>
+
+    <section class="sect">
+      <div class="sect-head">
+        <span class="sign">expertise</span>
+      </div>
+
+      <div class="paper">
+        <ul class="cards" id="cards"></ul>
+      </div>
+    </section>
+
+    <section class="sect">
+      <div class="sect-head">
+        <span class="sign">projects</span>
+      </div>
+
+      <div class="paper">
+        <div class="filters" id="filters" role="group" aria-label="filter projects">
+          <button class="chip is-on" type="button" data-filter="all">all</button>
+          <button class="chip" type="button" data-filter="comp">computational</button>
+          <button class="chip" type="button" data-filter="env">environmental</button>
+        </div>
+
+        <div id="projList"></div>
+
+        <button class="plank proj-more" type="button" id="projMore"></button>
+      </div>
+    </section>
+
+    <section class="sect">
+      <div class="sect-head">
+        <span class="sign">resume</span>
+      </div>
+
+      <div class="paper">
+          <div class="cv-actions">
+          <a class="plank" href="material/resume.pdf" target="_blank" rel="noopener">
+            open the pdf &#8599;
+          </a>
+          <a class="plank quiet" href="material/resume.pdf"
+             download="Rolands_Barkans_Resume.pdf">
+            grab a copy &#8595;
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <section class="sect">
+      <div class="sect-head">
+        <span class="sign">contact</span>
+      </div>
+
+      <div class="paper">
+        <div class="links">
+          <a class="linkrow" href="https://github.com/rolandsbarkans"
+             target="_blank" rel="noopener noreferrer">
+            <img src="illustrations/bars/github.svg" alt="GitHub" width="151" height="24">
+          </a>
+          <a class="linkrow" href="https://linkedin.com/in/rolands-barkans-11411b247"
+             target="_blank" rel="noopener noreferrer">
+            <img src="illustrations/bars/linkedin.svg" alt="LinkedIn" width="160" height="24">
+          </a>
+        </div>
+
+        <button class="mailrow" type="button" id="mailRow">
+          <span>rolands.barkans@uni.minerva.edu</span>
+          <small>tap to copy</small>
+        </button>
+      </div>
+    </section>
+
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    (function () {
+      'use strict';
+
+      var still = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      /* ---------- expertise ---------- */
+
+      var cards = document.getElementById('cards');
+
+      (window.EXPERTISE || []).forEach(function (card, n) {
+        var item = document.createElement('li');
+        item.className = 'card' + (n === 0 ? ' is-open' : '');
+
+        var button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'card-btn';
+        button.setAttribute('aria-expanded', n === 0 ? 'true' : 'false');
+
+        var label = document.createElement('span');
+        label.textContent = card.title;
+        button.append(label, chevron());
+
+        var drop = document.createElement('div');
+        drop.className = 'drop';
+
+        var hold = document.createElement('div');
+        var points = document.createElement('ul');
+        points.className = 'card-points';
+        (card.points || []).forEach(function (point) {
+          var li = document.createElement('li');
+          li.textContent = point;
+          points.appendChild(li);
+        });
+        hold.appendChild(points);
+        drop.appendChild(hold);
+
+        button.addEventListener('click', function () {
+          var open = item.classList.toggle('is-open');
+          button.setAttribute('aria-expanded', open ? 'true' : 'false');
+        });
+
+        item.append(button, drop);
+        cards.appendChild(item);
+      });
+
+      function chevron() {
+        var chev = document.createElement('span');
+        chev.className = 'chev';
+        chev.setAttribute('aria-hidden', 'true');
+        return chev;
+      }
+
+      /* ---------- projects ---------- */
+
+      // In the order the buttons are laid out, as on map.html: a live thing first.
+      var LINKS = [
+        { field: 'url', label: 'Visit the site' },
+        { field: 'github', label: 'View on GitHub' },
+        { field: 'pdf', label: 'Read the paper' }
+      ];
+
+      function fieldOf(project) {
+        return project.field === 'env' ? 'env' : 'comp';
+      }
+
+      // Flattened: the trail map groups by place, a phone reads one list.
+      var all = [];
+      (window.PLACES || []).forEach(function (spot) {
+        (spot.projects || []).forEach(function (project) {
+          all.push({ project: project, place: spot.place, field: fieldOf(project) });
+        });
+      });
+
+      /* The featured six first, then the rest newest-first. Sorting the whole
+         list this way rather than only on expand keeps a row from jumping
+         somewhere else the moment "see all" is pressed. */
+      all.sort(function (a, b) {
+        var pick = (b.project.featured ? 1 : 0) - (a.project.featured ? 1 : 0);
+        if (pick) return pick;
+        return String(b.project.year || '').localeCompare(String(a.project.year || ''));
+      });
+
+      var list = document.getElementById('projList');
+      var more = document.getElementById('projMore');
+      var filters = document.getElementById('filters');
+
+      var showing = 'all';
+      var opened = false;   // has "see all" been pressed
+
+      all.forEach(function (entry) {
+        entry.el = projectRow(entry);
+        list.appendChild(entry.el);
+      });
+
+      function projectRow(entry) {
+        var project = entry.project;
+
+        var row = document.createElement('article');
+        row.className = 'proj ' + entry.field;
+
+        var button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'proj-btn';
+        button.setAttribute('aria-expanded', 'false');
+
+        var title = document.createElement('span');
+        title.className = 'proj-title';
+        title.textContent = project.title || 'Untitled';
+
+        var year = document.createElement('span');
+        year.className = 'proj-year';
+        year.textContent = project.year || '';
+
+        button.append(title, year, chevron());
+
+        var drop = document.createElement('div');
+        drop.className = 'drop';
+        var hold = document.createElement('div');
+
+        var where = document.createElement('p');
+        where.className = 'proj-where';
+        where.textContent = entry.place;
+        hold.appendChild(where);
+
+        if (project.tags && project.tags.length) {
+          var tags = document.createElement('ul');
+          tags.className = 'proj-tags';
+          project.tags.forEach(function (tag) {
+            var li = document.createElement('li');
+            li.textContent = tag;
+            tags.appendChild(li);
+          });
+          hold.appendChild(tags);
+        }
+
+        var text = document.createElement('p');
+        text.className = 'proj-text';
+        text.textContent = project.text || '';
+        hold.appendChild(text);
+
+        var links = document.createElement('div');
+        links.className = 'proj-links';
+        LINKS.forEach(function (kind) {
+          var url = project[kind.field];
+          if (!url) return;
+          var link = document.createElement('a');
+          link.className = 'proj-link';
+          link.href = url;
+          link.target = '_blank';
+          link.rel = 'noopener noreferrer';
+          link.textContent = kind.label;
+          links.appendChild(link);
+        });
+        if (links.children.length) hold.appendChild(links);
+
+        button.addEventListener('click', function () {
+          var open = row.classList.toggle('is-open');
+          button.setAttribute('aria-expanded', open ? 'true' : 'false');
+        });
+
+        drop.appendChild(hold);
+        row.append(button, drop);
+        return row;
+      }
+
+      function matches(entry) {
+        return showing === 'all' || entry.field === showing;
+      }
+
+      function draw() {
+        var hidden = 0;
+
+        all.forEach(function (entry) {
+          var show = matches(entry) && (opened || entry.project.featured);
+          entry.el.hidden = !show;
+          if (matches(entry) && !show) hidden++;
+
+          // A row folded away while open must not come back already open.
+          if (!show) {
+            entry.el.classList.remove('is-open');
+            entry.el.querySelector('.proj-btn').setAttribute('aria-expanded', 'false');
+          }
+        });
+
+        if (!opened && hidden) {
+          more.hidden = false;
+          more.textContent = 'see ' + hidden + ' more project' + (hidden === 1 ? '' : 's');
+        } else if (opened && all.filter(matches).length > all.filter(function (e) {
+          return matches(e) && e.project.featured;
+        }).length) {
+          more.hidden = false;
+          more.textContent = 'show fewer';
+        } else {
+          more.hidden = true;
+        }
+      }
+
+      more.addEventListener('click', function () {
+        opened = !opened;
+        draw();
+        if (!opened) {
+          // Folding away can leave the reader below the section entirely.
+          more.scrollIntoView({ block: 'center', behavior: still ? 'auto' : 'smooth' });
+        }
+      });
+
+      filters.addEventListener('click', function (e) {
+        var chip = e.target.closest('.chip');
+        if (!chip) return;
+        showing = chip.dataset.filter;
+        filters.querySelectorAll('.chip').forEach(function (one) {
+          one.classList.toggle('is-on', one === chip);
+        });
+        draw();
+      });
+
+      draw();
+
+      /* ---------- the email ---------- */
+
+      var EMAIL = 'rolands.barkans@uni.minerva.edu';
+      var toast = document.getElementById('toast');
+      var toastTimer = null;
+
+      function say(words) {
+        toast.textContent = words;
+        toast.classList.add('show');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(function () {
+          toast.classList.remove('show');
+        }, 2200);
+      }
+
+      function copyEmail() {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(EMAIL).then(done, fallback);
+          return;
+        }
+        fallback();
+
+        function done() { say('email address copied'); }
+
+        // execCommand is the fallback for file:// and older browsers.
+        function fallback() {
+          var helper = document.createElement('textarea');
+          helper.value = EMAIL;
+          helper.setAttribute('readonly', '');
+          helper.style.position = 'fixed';
+          helper.style.opacity = '0';
+          document.body.appendChild(helper);
+          helper.select();
+          var won = false;
+          try { won = document.execCommand('copy'); } catch (err) {}
+          helper.remove();
+          say(won ? 'email address copied' : EMAIL);
+        }
+      }
+
+      document.getElementById('mailRow').addEventListener('click', copyEmail);
+    })();
+  </script>
+
+</body>
+</html>

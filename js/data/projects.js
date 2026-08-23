@@ -1,4 +1,4 @@
-/* The trail map's marks, one entry per place: at is { left, top } in percent, size the circle's width, ring which of the six drawn circles. A project takes title, text, field ('comp' or 'env', by subject not method), tags, year, url, github, pdf. */
+/* The trail map's marks, one entry per place: at is { left, top } in percent, size the circle's width, ring which of the six drawn circles. A project takes title, text, field ('comp' or 'env', by subject not method), tags, year, url, github, pdf. `featured` is the handful mobile.html shows before "see all": four computational and two environmental. */
 
 window.PLACES = [
   {
@@ -8,6 +8,7 @@ window.PLACES = [
     projects: [
       {
         title: 'Taxi Trip Duration Prediction',
+        featured: true,
         field: 'cs',
         year: '2026',
         tags: ['Machine Learning', 'Python', 'Quantile Regression'],
@@ -16,6 +17,7 @@ window.PLACES = [
       },
       {
         title: 'Can Bacteria Increase CO2 Capture?',
+        featured: true,
         field: 'env',
         year: '2026',
         tags: ['Research Proposal', 'Climate Science', 'Geochemistry'],
@@ -76,6 +78,7 @@ window.PLACES = [
     projects: [
       {
         title: 'OR-Tools Route Planner',
+        featured: true,
         field: 'comp',
         year: '2024',
         tags: ['Python', 'Optimization', 'Operations Research'],
@@ -100,6 +103,7 @@ window.PLACES = [
     projects: [
       {
         title: "Soot-Driven Glacier Loss Simulation",
+        featured: true,
         field: 'cs',
         year: '2026',
         tags: ['Python', 'Cellular Automata', 'Simulation'],
@@ -132,6 +136,7 @@ window.PLACES = [
       },
       {
         title: "Does Satellite Data Match Air Quality on the Ground?",
+        featured: true,
         field: 'env',
         year: '2026',
         tags: ['Remote Sensing', 'Field Observations'],
@@ -163,6 +168,7 @@ window.PLACES = [
       },
       {
         title: 'Drought Prediction in the Horn of Africa',
+        featured: true,
         field: 'comp',
         year: '2025',
         tags: ['Python', 'Deep Learning', 'NLP', 'Geospatial Analysis'],

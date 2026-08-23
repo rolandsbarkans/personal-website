@@ -36,7 +36,34 @@
     }
   </style>
 
-  <script src="js/core/boot.js?v=3"></script>
+  <script src="js/core/boot.js?v=4"></script>
+  <script>loadLocal('js/core/device.js');</script>
+
+  <script>
+    /* A phone gets the scrolling page instead. The campsite's stage is wider
+       than a phone screen, so it would arrive cropped rather than small.
+       ?full=1 is the way past, and it sticks for the session so the hash
+       router does not bounce a visitor straight back out again. */
+    (function () {
+      var KEY = 'campsiteFull';
+
+      try {
+        if (/[?&]full=1/.test(location.search)) {
+          sessionStorage.setItem(KEY, '1');
+          return;
+        }
+        if (sessionStorage.getItem(KEY) === '1') return;
+      } catch (err) {
+        /* storage walled off — fall through and decide on the screen alone */
+      }
+
+      // replace(), or Back from the mobile page lands here and redirects again.
+      if (window.isPhone()) {
+        location.replace('mobile.html?v=' + window.CAMPSITE_V);
+      }
+    })();
+  </script>
+
   <script>
     loadLocal('js/core/music.js');
 
