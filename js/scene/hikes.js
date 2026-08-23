@@ -208,7 +208,10 @@
       maxZoom: MAX_Z,
       // fractional zoom, or the fitted level rounds down and leaves a gutter
       zoomSnap: 0,
-      zoomDelta: 0.6,
+      zoomDelta: 1,
+      // Leaflet's default 60px per level makes crossing MAX_Z a long scroll.
+      wheelPxPerZoomLevel: 18,
+      wheelDebounceTime: 20,
       maxBounds: WORLD,
       maxBoundsViscosity: 1,
       worldCopyJump: false

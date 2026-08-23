@@ -31,13 +31,22 @@
   }
 
     var here = pageOf(location.pathname);
-  var smooth = sessionStorage.getItem(ARRIVE + here) === '1';
+  var arrival = sessionStorage.getItem(ARRIVE + here);
   var door = sessionStorage.getItem(DOOR);
   sessionStorage.removeItem(ARRIVE + here);
   sessionStorage.removeItem(DOOR);
 
-  if (smooth) {
+  // How long the fast walk takes, at both ends of it.
+  var DASH = { wash: 240, zoom: 300, settle: 420 };
+
+  if (arrival) {
     if (door) scene.style.transformOrigin = originOf(door);
+    // The room that sent us here hurried, so match it rather than dawdling.
+    if (arrival === 'fast') {
+      body.style.setProperty('--wash-in-time', DASH.wash + 'ms');
+      body.style.setProperty('--settle-time', DASH.settle + 'ms');
+      scene.style.setProperty('--arrive', 1.12);
+    }
     body.classList.add('zoomed-in');
   } else {
     body.classList.add('no-wash');
@@ -69,9 +78,14 @@
     if (leaving) return;
     leaving = true;
 
-    sessionStorage.setItem(ARRIVE + to, '1');
+    sessionStorage.setItem(ARRIVE + to, opts.fast ? 'fast' : '1');
     if (opts.remember) sessionStorage.setItem(DOOR, opts.remember);
     if (opts.wash) body.style.setProperty('--wash-out', opts.wash);
+
+    if (opts.fast) {
+      body.style.setProperty('--wash-out-time', DASH.wash + 'ms');
+      scene.style.setProperty('--exit-time', DASH.zoom + 'ms');
+    }
 
     // The fade still happens; only the zoom is movement for its own sake.
     if (!still) {
@@ -91,7 +105,7 @@
     body.addEventListener('transitionend', function (e) {
       if (e.pseudoElement === '::after' && e.propertyName === 'opacity') go();
     });
-    setTimeout(go, 900);
+    setTimeout(go, opts.fast ? DASH.wash + 120 : 900);
   }
 
   var Room = (window.Room = {});
@@ -99,6 +113,13 @@
   // Zoom toward the thing clicked. `wash` is the colour of the destination.
   Room.enter = function (selector, to, wash) {
     walk(to, { origin: originOf(selector), scale: 1.6, wash: wash });
+  };
+
+  /* The same door, walked at a clip: for a link in a body of text, where the
+     slow zoom would read as the page hanging. No selector — text has no place
+     in the scene to zoom toward. */
+  Room.dash = function (to, wash) {
+    walk(to, { scale: 1.18, wash: wash, fast: true });
   };
 
   // Back out to the campsite, telling it which door to grow from.

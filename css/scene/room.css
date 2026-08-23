@@ -60,11 +60,11 @@ body.zoomed-in .scene {
 
 .scene.settle {
   transform: scale(1);
-  transition: transform 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: transform var(--settle-time, 0.8s) cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .scene.zoom-exit {
-  transition: transform 0.6s cubic-bezier(0.5, 0, 0.8, 0.6);
+  transition: transform var(--exit-time, 0.6s) cubic-bezier(0.5, 0, 0.8, 0.6);
 }
 
 /* Pseudo-elements, so they exist at the first paint with no markup in any page. */
@@ -80,7 +80,7 @@ body::after {
 body::before {
   background: var(--wash);
   opacity: 1;
-  transition: opacity 0.6s ease;
+  transition: opacity var(--wash-in-time, 0.6s) ease;
 }
 
 body.arrived::before {
@@ -90,7 +90,7 @@ body.arrived::before {
 body::after {
   background: var(--wash-out);
   opacity: 0;
-  transition: opacity 0.55s ease;
+  transition: opacity var(--wash-out-time, 0.55s) ease;
 }
 
 body.leaving::after {

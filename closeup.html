@@ -457,6 +457,25 @@
                                   rgba(168, 68, 47, 0.26) 52%);
     }
 
+    /* The ones that are doors, not just names of things in the campsite: the
+       clay rises from an underline to fill the word. */
+    .bio-p mark.spot[data-goes] {
+      cursor: pointer;
+      background-image: linear-gradient(rgba(168, 68, 47, 0.92),
+                                        rgba(168, 68, 47, 0.92));
+      background-repeat: no-repeat;
+      background-position: 0 100%;
+      background-size: 100% 48%;
+      transition: background-size 0.18s ease, color 0.18s ease;
+    }
+
+    .bio-p mark.spot[data-goes]:hover,
+    .bio-p mark.spot[data-goes]:focus-visible {
+      color: #FBF1DC;
+      outline: none;
+      background-size: 100% 100%;
+    }
+
         .bio-nav {
       flex: 0 0 auto;
       margin-top: 1.7cqw;
@@ -635,18 +654,20 @@
 
               <section class="bio-panel" data-title="where to go next">
                 <p class="bio-p">if you haven't already, click around the website to see
-                  where you get. take a look at the <mark class="spot">tent</mark>
+                  where you get. take a look at the
+                  <mark class="spot" data-goes="tent.html">tent</mark>
                   to see my computational and environmental <mark>projects</mark> or the
-                  <mark class="spot">compass</mark> that shows my
+                  <mark class="spot" data-goes="compass.html">compass</mark> that shows my
                   <mark>expertise</mark>. if anything resonates with you, the
-                  <mark class="spot">contact bars</mark> tell you how to reach me.</p>
+                  <mark class="spot" data-goes="bars.html">contact bars</mark>
+                  tell you how to reach me.</p>
               </section>
 
               <section class="bio-panel" data-title="one more thing">
                 <p class="bio-p">oh, and don't forget to check out what
                   <mark>music</mark> i was listening to while building this (click the
                   <mark class="spot">airpods</mark> in the back). and drop your favorite
-                  <mark>hiking spot</mark> on the map, so i can experience it too!</p>
+                  <mark>hiking spot</mark> on the map, so i can one day experience it too!</p>
 
                 <div class="bio-actions">
                   <button class="bio-button" type="button" onclick="openHikes()">suggest a hike</button>
@@ -767,6 +788,30 @@
       document.getElementById('bioDim').classList.remove('visible');
       bubble.classList.remove('open');
     }
+
+    /* The clay words in "where to go next" are doors. Room.dash rather than
+       Room.enter: a word in a paragraph has nothing on the stage to zoom into,
+       and the reader is following a sentence, not walking across the campsite. */
+    const SPOT_WASH = {
+      'tent.html': '#AE4A3C',
+      'compass.html': 'rgb(32, 23, 17)',
+      'bars.html': 'rgb(32, 23, 17)'
+    };
+
+    bubble.querySelectorAll('mark.spot[data-goes]').forEach(function (spot) {
+      const to = spot.dataset.goes;
+      spot.setAttribute('role', 'link');
+      spot.tabIndex = 0;
+
+      function walk() { window.Room.dash(to, SPOT_WASH[to]); }
+
+      spot.addEventListener('click', walk);
+      spot.addEventListener('keydown', function (e) {
+        if (e.key !== 'Enter' && e.key !== ' ') return;
+        e.preventDefault();
+        walk();
+      });
+    });
 
     function handlePersonClick() {
       openBio();
