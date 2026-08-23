@@ -197,7 +197,7 @@
     }
 
     .paper {
-      padding: 1.35rem 1.25rem 1.4rem;
+      padding: 1.35rem 1.25rem;
       background: var(--paper);
       border: 2.5px solid var(--ink);
       border-radius: var(--round);
@@ -442,57 +442,49 @@
     .cv-actions { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-top: 1.1rem; }
     .cv-actions .plank { flex: 1 1 9rem; }
 
-    .plank.quiet {
-      background: transparent;
-      color: var(--ink);
-      border-color: rgba(58, 42, 22, 0.4);
-      box-shadow: none;
-    }
+    /* Alone on the card, so the paper's own padding sets the gap at both ends. */
+    .cv-actions:first-child { margin-top: 0; }
 
-    .plank.quiet:active { transform: translateY(2px); box-shadow: none; }
+    /* Drawn, not typed: an arrow character is treated as an emoji on some
+       phones and arrives coloured and off the baseline. */
+    .plank-arrow { width: 0.95em; height: 0.95em; flex: 0 0 auto; }
 
     /* ---- contact ---- */
 
     /* The marks printed on the protein-bar wrappers back at the campsite,
-       here as the links themselves. */
+       here as the links themselves. The email is a button rather than a link,
+       so it carries the resets a button needs to sit in the same row. */
     .links { display: grid; gap: 0.6rem; }
 
     .linkrow {
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 0.95rem 0.8rem;
-      background: rgba(234, 198, 140, 0.3);
-      border: 1.6px dashed rgba(58, 42, 22, 0.4);
-      border-radius: 0.8rem 0.6rem 0.75rem 0.55rem / 0.6rem 0.8rem 0.5rem 0.7rem;
-    }
-
-    .linkrow img { width: 58%; max-width: 10.5rem; }
-    .linkrow:active { transform: translateY(1px); background: rgba(234, 198, 140, 0.5); }
-
-    .mailrow {
-      display: flex;
-      align-items: center;
-      gap: 0.55rem;
       width: 100%;
-      margin: 1.15rem 0 0;
-      padding: 0.62rem 0.8rem 0.66rem;
+      box-sizing: border-box;
+      padding: 0.95rem 0.8rem;
       font: inherit;
-      font-size: 0.88rem;
-      line-height: 1.3;
-      text-align: left;
-      color: var(--ink);
       background: rgba(234, 198, 140, 0.3);
       border: 1.6px dashed rgba(58, 42, 22, 0.4);
       border-radius: 0.8rem 0.6rem 0.75rem 0.55rem / 0.6rem 0.8rem 0.5rem 0.7rem;
       cursor: pointer;
       -webkit-appearance: none;
       appearance: none;
-      box-sizing: border-box;
     }
 
-    .mailrow span { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
-    .mailrow small { flex: 0 0 auto; opacity: 0.6; font-size: 0.76rem; }
+    .linkrow:active { transform: translateY(1px); background: rgba(234, 198, 140, 0.5); }
+
+    /* All three marks are lettered at the same type size in the artwork — each
+       has an x-height of 69 units — so they match when they are drawn at one
+       scale, which means widths in the ratio of their own viewBoxes,
+       151 : 160 : 271. Matching their heights instead shrinks the email: its
+       box is shorter and its ink taller, since the @ drops below the baseline
+       where the other two have no descender at all. */
+    .linkrow img { display: block; height: auto; }
+
+    .row-github img   { width: 46.4%; max-width: 9.1rem; }
+    .row-linkedin img { width: 49.2%; max-width: 9.64rem; }
+    .row-email img    { width: 83.3%; max-width: 16.33rem; }
 
     /* ---- the copied-email note ---- */
 
@@ -532,7 +524,7 @@
     <a class="topbar" href="index.html?full=1">
       <span class="topbar-words">
         <span class="topbar-lead">see the full website</span>
-        <span class="topbar-note">best works on computer</span>
+        <span class="topbar-note">works best on a computer</span>
       </span>
       <span class="topbar-arrow" aria-hidden="true">
         <svg viewBox="0 0 24 24" fill="none">
@@ -559,7 +551,7 @@
       </div>
 
       <div class="paper">
-        <p class="para">my name is rolands. i'm a senior studying <mark>data science</mark>
+        <p class="para">i'm a senior studying <mark>data science</mark>
           at minerva university, though i'm also interested in
           <mark>environmental sustainability</mark> and have a soft spot for
           <mark>automation</mark>. what connects them, at least the way i see it, is
@@ -602,13 +594,13 @@
       </div>
 
       <div class="paper">
-          <div class="cv-actions">
+        <div class="cv-actions">
           <a class="plank" href="material/resume.pdf" target="_blank" rel="noopener">
-            open the pdf &#8599;
-          </a>
-          <a class="plank quiet" href="material/resume.pdf"
-             download="Rolands_Barkans_Resume.pdf">
-            grab a copy &#8595;
+            open the pdf
+            <svg class="plank-arrow" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M7 17 L17 7 M9 7 h8 v8" stroke="currentColor"
+                    stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
           </a>
         </div>
       </div>
@@ -621,20 +613,21 @@
 
       <div class="paper">
         <div class="links">
-          <a class="linkrow" href="https://github.com/rolandsbarkans"
+          <a class="linkrow row-github" href="https://github.com/rolandsbarkans"
              target="_blank" rel="noopener noreferrer">
-            <img src="illustrations/bars/github.svg" alt="GitHub" width="151" height="24">
+            <img src="illustrations/bars/github.svg" alt="GitHub: rolandsbarkans"
+                 width="151" height="24">
           </a>
-          <a class="linkrow" href="https://linkedin.com/in/rolands-barkans-11411b247"
+          <a class="linkrow row-linkedin" href="https://linkedin.com/in/rolands-barkans-11411b247"
              target="_blank" rel="noopener noreferrer">
-            <img src="illustrations/bars/linkedin.svg" alt="LinkedIn" width="160" height="24">
+            <img src="illustrations/bars/linkedin.svg" alt="LinkedIn: Rolands Barkans"
+                 width="160" height="24">
           </a>
+          <button class="linkrow row-email" type="button" id="mailRow"
+                  aria-label="Copy my email address, rolands.barkans@uni.minerva.edu">
+            <img src="illustrations/bars/gmail.svg" alt="" width="271" height="20">
+          </button>
         </div>
-
-        <button class="mailrow" type="button" id="mailRow">
-          <span>rolands.barkans@uni.minerva.edu</span>
-          <small>tap to copy</small>
-        </button>
       </div>
     </section>
 
