@@ -28,7 +28,7 @@ window.MOMENTS = [
   },
   {
     src: 'material/moments/moment6.jpg',
-    place: "Punalu'u, Hawai'i",
+    place: "Pololu Valley, Hawai'i",
     when: 'Nov 2021',
   },
   {
