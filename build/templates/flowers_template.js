@@ -28,11 +28,70 @@
         fx: (box.x + box.width / 2) / 447,
         fy: (box.y + box.height / 2) / 114,
         open: false,
+        wave: false,
       };
     });
   }
 
   let spots = collect();
+
+  /* A wave breaking off the left edge. The front is an arc spreading from one
+     point on that edge, and every flower is nudged off it, so it washes over
+     the patch instead of crossing in step. The sun holds them up; they go down
+     the same way. */
+  const WAVE_SPAN = 400;      // ms for the front to reach the far edge
+  const WAVE_ARC = 0.5;       // how much of the patch's height counts as distance
+  const WAVE_SCATTER = 150;   // ms a flower may lead or trail the front
+
+  const Flowers = (window.Flowers = window.Flowers || {});
+  let waveTimers = [];
+
+  function sweep(step) {
+    waveTimers.forEach(clearTimeout);
+    waveTimers = [];
+    const from = Math.random();   // where along the left edge it breaks
+
+    for (const spot of spots) {
+      const dy = (spot.fy - from) * WAVE_ARC;
+      const at = Math.hypot(spot.fx + 0.04, dy) * WAVE_SPAN +
+                 Math.random() * WAVE_SCATTER;
+      waveTimers.push(setTimeout(step, at, spot));
+    }
+  }
+
+  function up(spot) {
+    spot.wave = true;
+    spot.el.classList.add('bloom');
+  }
+
+  function down(spot) {
+    spot.wave = false;
+    spot.el.classList.remove('shake');
+    // The pointer may be holding this one open on its own.
+    if (!spot.open) spot.el.classList.remove('bloom');
+  }
+
+  Flowers.raise = function () { sweep(up); };
+  Flowers.lower = function () { sweep(down); };
+
+  // A small nudge on whatever is standing, head and stem together. Cleared on a
+  // timer rather than animationend, which never comes if the animation is off.
+  const SHAKE_MS = 560;
+  let shakeTimer = 0;
+
+  function unshake() {
+    for (const spot of spots) spot.el.classList.remove('shake');
+  }
+
+  Flowers.shake = function () {
+    unshake();
+    svg.getBoundingClientRect();   // let the removal land before it is set again
+    for (const spot of spots) {
+      if (spot.el.classList.contains('bloom')) spot.el.classList.add('shake');
+    }
+    clearTimeout(shakeTimer);
+    shakeTimer = setTimeout(unshake, SHAKE_MS);
+  };
 
   if (host.hasAttribute('data-static')) return;
 
@@ -81,7 +140,8 @@
       const open = Math.hypot(dx, dy) < radius;
       if (open !== spot.open) {
         spot.open = open;
-        spot.el.classList.toggle('bloom', open);
+        if (open) spot.el.classList.add('bloom');
+        else if (!spot.wave) spot.el.classList.remove('bloom');
       }
     }
   }
@@ -90,7 +150,7 @@
     for (const spot of spots) {
       if (!spot.open) continue;
       spot.open = false;
-      spot.el.classList.remove('bloom');
+      if (!spot.wave) spot.el.classList.remove('bloom');
     }
   }
 })();

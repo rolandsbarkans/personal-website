@@ -155,6 +155,7 @@
 
   function onMoon(clientX, clientY) {
     if (!night) return false;
+    if (document.documentElement.classList.contains('bee-talking')) return false;
     const r = moon.getBoundingClientRect();
     if (!r.width) return false;
     const dx = clientX - (r.left + r.width / 2);

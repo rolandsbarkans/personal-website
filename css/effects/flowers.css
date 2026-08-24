@@ -45,6 +45,22 @@
     transform: translateY(calc(var(--rise) * -1 * var(--growth, 1))) scale(1.12);
   }
 
+  /* The whole plant swings from the soil, so the stem goes with the head. */
+  @keyframes flower-shake {
+    0%   { transform: rotate(0deg); }
+    18%  { transform: rotate(4.2deg); }
+    38%  { transform: rotate(-3.4deg); }
+    58%  { transform: rotate(2deg); }
+    78%  { transform: rotate(-1deg); }
+    100% { transform: rotate(0deg); }
+  }
+
+  .flower.shake {
+    transform-box: fill-box;
+    transform-origin: 50% 100%;
+    animation: flower-shake 0.44s ease-in-out var(--delay);
+  }
+
   .uf-field-ink {
     pointer-events: none;
   }
@@ -60,6 +76,9 @@
   @media (prefers-reduced-motion: reduce) {
     .flowers svg {
       --uf-fade: 0ms !important;
+    }
+    .flower.shake {
+      animation: none;
     }
   }
 }

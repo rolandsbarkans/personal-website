@@ -77,4 +77,35 @@
   }
 
   window.Sky.sync();
+
+  /* Drawn behind the scene, so it cannot be a .hotspot and is hit-tested by hand. */
+  const SUN_REACH = 1.15;
+  let onSunNow = false;
+
+  function onSun(clientX, clientY) {
+    if (document.body.classList.contains('night')) return false;
+    if (document.documentElement.classList.contains('bee-talking')) return false;
+    const r = sun.getBoundingClientRect();
+    if (!r.width) return false;
+    const dx = clientX - (r.left + r.width / 2);
+    const dy = clientY - (r.top + r.height / 2);
+    const reach = (r.width / 2) * SUN_REACH;
+    return dx * dx + dy * dy <= reach * reach;
+  }
+
+  // The glow, and the flowers, hold for as long as the pointer is on it.
+  document.addEventListener('pointermove', (e) => {
+    const over = onSun(e.clientX, e.clientY);
+    if (over === onSunNow) return;
+    onSunNow = over;
+    sun.classList.toggle('lit', over);
+    if (!window.Flowers) return;
+    if (over) window.Flowers.raise();
+    else window.Flowers.lower();
+  }, { passive: true });
+
+  document.addEventListener('click', (e) => {
+    if (!onSun(e.clientX, e.clientY)) return;
+    if (window.Flowers && window.Flowers.shake) window.Flowers.shake();
+  });
 })();

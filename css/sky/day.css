@@ -46,6 +46,13 @@ body.night .day-layer {
   width: var(--sky-size, 6.4%);
   aspect-ratio: 1;
   transform: translate(-50%, -50%);
+  /* The same filter list unlit, so the glow has something to grow from. */
+  filter: brightness(1) drop-shadow(0 0 0 rgba(255, 243, 200, 0));
+  transition: filter 0.35s ease;
+}
+
+.sun.lit {
+  filter: brightness(1.16) drop-shadow(0 0 1vw rgba(255, 243, 200, 0.8));
 }
 
 .sun-disc {

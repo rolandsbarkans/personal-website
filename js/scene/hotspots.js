@@ -191,7 +191,9 @@
 
   function track(clientX, clientY) {
 
-    if (scene.classList.contains('modal-open')) {
+    // The bee's bubble holds the scene still, the same way a modal does.
+    if (scene.classList.contains('modal-open') ||
+        document.documentElement.classList.contains('bee-talking')) {
       light(null);
       lastX = lastY = null;
       return;
