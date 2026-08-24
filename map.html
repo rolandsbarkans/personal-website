@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand+SC&family=Yomogi&display=swap" rel="stylesheet">
 
-  <script src="js/core/boot.js?v=29"></script>
+  <script src="js/core/boot.js?v=31"></script>
   <script>
     loadLocal('js/core/assets.js');
     loadLocal('js/core/music.js');
@@ -93,14 +93,25 @@
       inset: 0;
       font-size: 28cqw;
       pointer-events: none;
+      transform: scale(1);
+      transform-origin: 50% 50%;
+      transition: transform var(--dur-out) var(--spring-out);
+    }
+
+    /* The counts ride the ring's swell out, and undo it on themselves so only
+       their position moves, never their size. */
+    .place.lit .place-badges {
+      transform: scale(calc(1 + var(--grow)));
+      transition: transform var(--dur-in) var(--spring-in);
     }
 
     /* Both sit on the pen stroke, at matching points above and below. */
     .place-badge {
       position: absolute;
       left: 86%;
-      top: 10%;
+      top: 22%;
       transform: translate(-50%, -50%) rotate(-8deg);
+      transition: transform var(--dur-out) var(--spring-out);
       min-width: 1.55em;
       height: 1.55em;
       display: grid;
@@ -117,8 +128,17 @@
     }
 
     .place-badge.second {
-      top: 90%;
+      top: 78%;
       transform: translate(-50%, -50%) rotate(6deg);
+    }
+
+    .place.lit .place-badge {
+      transform: translate(-50%, -50%) rotate(-8deg) scale(calc(1 / (1 + var(--grow))));
+      transition: transform var(--dur-in) var(--spring-in);
+    }
+
+    .place.lit .place-badge.second {
+      transform: translate(-50%, -50%) rotate(6deg) scale(calc(1 / (1 + var(--grow))));
     }
 
     .place-badge.comp { background: var(--comp); }

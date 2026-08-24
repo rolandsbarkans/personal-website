@@ -92,6 +92,7 @@
   window.Sky.sync();
 
   let night = sessionStorage.getItem(KEY) === '1';
+  let onMoonNow = false;
 
     /* `instant` suppresses the transitions for a frame, so a camp that was already dark does not replay the sunset. */
   function apply(instant) {
@@ -112,6 +113,10 @@
       sessionStorage.setItem(KEY, night ? '1' : '0');
       syncFire();
       apply(false);
+      if (!night) {
+        onMoonNow = false;
+        moon.classList.remove('lit');
+      }
 
       /* The shell's signpost reads the same key, but it is a document away and
          storage events across frames are not worth relying on. */
@@ -158,29 +163,17 @@
     return dx * dx + dy * dy <= reach * reach;
   }
 
-  function nudgeMoon() {
-    moon.classList.remove('nudged');
-    void moon.offsetWidth;
-    moon.classList.add('nudged');
-  }
-
-  moon.addEventListener('animationend', () => moon.classList.remove('nudged'));
-
-  let onMoonNow = false;
-
+  // The glow holds for as long as the pointer is on it.
   document.addEventListener('pointermove', (e) => {
     const over = onMoon(e.clientX, e.clientY);
     if (over === onMoonNow) return;
     onMoonNow = over;
-    if (over) {
-      nudgeMoon();
-      shoot(true);
-    }
+    moon.classList.toggle('lit', over);
+    if (over) shoot(true);
   }, { passive: true });
 
   document.addEventListener('click', (e) => {
     if (!onMoon(e.clientX, e.clientY)) return;
-    nudgeMoon();
     shoot(true);
   });
 })();
