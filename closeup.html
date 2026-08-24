@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Kosugi+Maru&family=Yomogi&display=swap" rel="stylesheet">
 
-  <script src="js/core/boot.js?v=4"></script>
+  <script src="js/core/boot.js?v=28"></script>
   <script>
     loadLocal('js/core/assets.js');
     loadLocal('js/core/music.js');
@@ -790,6 +790,15 @@
       document.getElementById('bioDim').classList.remove('visible');
       bubble.classList.remove('open');
     }
+
+    // The signpost's "about" board asks for the card, not just the room.
+    window.addEventListener('load', function () {
+      try {
+        if (sessionStorage.getItem('openBio') !== '1') return;
+        sessionStorage.removeItem('openBio');
+      } catch (err) { return; }
+      openBio();
+    });
 
     /* The clay words in "where to go next" are doors. Room.dash rather than
        Room.enter: a word in a paragraph has nothing on the stage to zoom into,

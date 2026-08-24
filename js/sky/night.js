@@ -112,6 +112,14 @@
       sessionStorage.setItem(KEY, night ? '1' : '0');
       syncFire();
       apply(false);
+
+      /* The shell's signpost reads the same key, but it is a document away and
+         storage events across frames are not worth relying on. */
+      try {
+        if (window.parent !== window && window.parent.__campsiteNight) {
+          window.parent.__campsiteNight();
+        }
+      } catch (err) { /* opened on its own */ }
     });
   }
 

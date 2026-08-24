@@ -5,6 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>rolands barkans</title>
   
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <!-- The corner signpost is lettered in the same hand as the signs in the rooms. -->
+  <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&family=Yomogi&display=swap" rel="stylesheet">
+
   <!-- Inline, so the browser's automatic /favicon.ico request does not 404. -->
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23D3DBFF'/%3E%3Crect x='14.6' y='21' width='2.8' height='6' rx='1' fill='%235F4133'/%3E%3Cpath d='M16 4l6 8h-3.4l5 7h-4.2l4.6 6H8l4.6-6H8.4l5-7H10z' fill='%23628E05'/%3E%3C/svg%3E">
 
@@ -36,7 +41,7 @@
     }
   </style>
 
-  <script src="js/core/boot.js?v=4"></script>
+  <script src="js/core/boot.js?v=28"></script>
   <script>loadLocal('js/core/device.js');</script>
 
   <script>
@@ -65,10 +70,17 @@
   </script>
 
   <script>
+    /* Before any room exists, so nothing has read the keys it clears. */
+    loadLocal('js/core/visit.js');
+
     loadLocal('js/core/music.js');
 
     /* The panel and card are drawn here, so a pointer over them leaves the room's cursor:none. */
     loadLocal('css/scene/bee.css');
+
+    /* The corner signpost belongs to the shell, or it would not outlive a move. */
+    loadLocal('css/scene/shortcuts.css');
+    loadLocal('js/core/shortcuts.js');
   </script>
 </head>
 <body>
@@ -172,6 +184,9 @@
           }
 
           if (record) history.pushState(null, '', '#' + page);
+
+          // The shell's own furniture is told, since the room it sits over is new.
+          window.dispatchEvent(new CustomEvent('campsiteroom'));
         }
 
         next.addEventListener('load', function () {
@@ -189,6 +204,7 @@
       window.__campsiteGo = function (page) {
         if (!page || !/^[\w-]+\.html$/.test(page)) return;
         if (page === roomOf(current)) return;
+        window.dispatchEvent(new CustomEvent('campsitewalk'));
         show(page, true);
       };
 

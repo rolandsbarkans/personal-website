@@ -680,6 +680,12 @@
     if (scene) scene.classList.toggle('modal-open', on);
     if (on && window.Hotspots) window.Hotspots.release();
 
+    // The signpost stands where the map's zoom buttons do.
+    try {
+      var shortcuts = window.parent !== window && window.parent.CampsiteShortcuts;
+      if (shortcuts) shortcuts.setHidden(on);
+    } catch (err) { /* the shell is not there when a room is opened alone */ }
+
     var music = window.CampsiteMusic;
     if (!music) return;
     try {

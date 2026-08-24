@@ -40,13 +40,15 @@
   var DASH = { wash: 240, zoom: 300, settle: 420 };
 
   if (arrival) {
-    if (door) scene.style.transformOrigin = originOf(door);
-    // The room that sent us here hurried, so match it rather than dawdling.
-    if (arrival === 'fast') {
-      body.style.setProperty('--wash-in-time', DASH.wash + 'ms');
-      body.style.setProperty('--settle-time', DASH.settle + 'ms');
-      scene.style.setProperty('--arrive', 1.12);
+    // "flat:<colour>" also names the colour to arrive out of.
+    var mark = arrival.indexOf(':');
+    if (mark > 0) {
+      body.style.setProperty('--wash', arrival.slice(mark + 1));
+      arrival = arrival.slice(0, mark);
     }
+    if (door) scene.style.transformOrigin = originOf(door);
+    body.style.setProperty('--wash-in-time', DASH.wash + 'ms');
+    body.style.setProperty('--settle-time', DASH.settle + 'ms');
     body.classList.add('zoomed-in');
   } else {
     body.classList.add('no-wash');
@@ -67,8 +69,41 @@
     setTimeout(reveal, 60);
   }
 
-  if (document.readyState === 'complete') settle();
-  else window.addEventListener('load', settle, { once: true });
+  /* After load, a last beat for the fonts and for any picture still arriving,
+     so the room is not shown half-drawn. Capped: the tent's photographs are
+     for the torch, not for the first look at the room. */
+  var READY_CAP = 900;
+
+  function whenReady(fn) {
+    var done = false;
+    function reveal() {
+      if (done) return;
+      done = true;
+      fn();
+    }
+
+    var waiting = 1;
+    function tick() { if (!--waiting) reveal(); }
+    function hold(p) { waiting++; p.then(tick, tick); }
+
+    if (document.fonts && document.fonts.ready) hold(document.fonts.ready);
+
+    Array.prototype.forEach.call(document.images, function (img) {
+      if (img.complete || !img.getAttribute('src')) return;
+      hold(new Promise(function (ok) {
+        img.addEventListener('load', ok, { once: true });
+        img.addEventListener('error', ok, { once: true });
+      }));
+    });
+
+    tick();
+    setTimeout(reveal, READY_CAP);
+  }
+
+  function ready() { whenReady(settle); }
+
+  if (document.readyState === 'complete') ready();
+  else window.addEventListener('load', ready, { once: true });
   setTimeout(settle, LOAD_LIMIT);
 
     var leaving = false;
@@ -78,7 +113,7 @@
     if (leaving) return;
     leaving = true;
 
-    sessionStorage.setItem(ARRIVE + to, opts.fast ? 'fast' : '1');
+    sessionStorage.setItem(ARRIVE + to, opts.arrive || (opts.fast ? 'fast' : '1'));
     if (opts.remember) sessionStorage.setItem(DOOR, opts.remember);
     if (opts.wash) body.style.setProperty('--wash-out', opts.wash);
 
@@ -112,7 +147,7 @@
 
   // Zoom toward the thing clicked. `wash` is the colour of the destination.
   Room.enter = function (selector, to, wash) {
-    walk(to, { origin: originOf(selector), scale: 1.6, wash: wash });
+    walk(to, { origin: originOf(selector), scale: 1.6, wash: wash, fast: true });
   };
 
   /* The same door, walked at a clip: for a link in a body of text, where the
@@ -122,9 +157,14 @@
     walk(to, { scale: 1.18, wash: wash, fast: true });
   };
 
+  // The signpost's door: the wash on its own, with no zoom at either end.
+  Room.jump = function (to, wash) {
+    walk(to, { scale: 1, wash: wash, fast: true, arrive: 'flat:' + wash });
+  };
+
   // Back out to the campsite, telling it which door to grow from.
   Room.exit = function (door) {
-    walk('main.html', { remember: door, scale: 0.94 });
+    walk('main.html', { remember: door, scale: 0.94, fast: true });
   };
 
   // Return true to swallow a back click — the tent puts the torch out first.

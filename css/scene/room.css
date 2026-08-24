@@ -10,13 +10,14 @@ body {
   overflow: hidden;
 }
 
-/* --arrive is how far oversized a room starts. */
+/* --arrive is how far oversized a room starts. A room arrives at its true
+   size: anything above 1 is seen as the page being zoomed in. */
 .scene {
   position: relative;
   width: 100vw;
   height: 100vh;
   overflow: hidden;
-  --arrive: 1.06;
+  --arrive: 1;
 }
 
 /* Scenery may stand outside the 16:9 frame, so this must not clip. */
@@ -53,7 +54,6 @@ body.framed-room {
   display: block;
 }
 
-/* A room arrives oversized and settles to 1, continuing the previous room's zoom. */
 body.zoomed-in .scene {
   transform: scale(var(--arrive));
 }
