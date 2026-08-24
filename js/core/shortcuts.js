@@ -174,7 +174,7 @@
     document.body.appendChild(dim);
 
     post = document.createElement('div');
-    post.className = 'sc-post';
+    post.className = 'sc-post moving';
     post.style.setProperty('--pole-x', POLE_X + 'px');
 
     var label = document.createElement('button');
@@ -213,6 +213,12 @@
   function onRoomClick() { setOpen(false); }
   function onBeeTalk(e) { hush(e.detail && e.detail.talking); }
 
+  function follow() {
+    var cls = watched.body.classList;
+    if (cls.contains('leaving')) leave();
+    else if (cls.contains('arrived')) arrive();
+  }
+
   // The frame is rebuilt on every move, so its document is new each time.
   function watchRoom() {
     var win = roomWindow();
@@ -225,10 +231,10 @@
         if (e.target === watched.body && e.propertyName === 'background-color') paintRoom();
       });
 
-      // `leaving` is how a room says its exit wash has started.
-      new win.MutationObserver(function () {
-        if (watched.body.classList.contains('leaving')) leave();
-      }).observe(watched.body, { attributes: true, attributeFilter: ['class'] });
+      // The room says when its wash starts and when it has lifted.
+      new win.MutationObserver(follow)
+        .observe(watched.body, { attributes: true, attributeFilter: ['class'] });
+      follow();
 
       hush(watched.documentElement.classList.contains('bee-talking'));
       paintRoom();
@@ -253,7 +259,6 @@
       window.CampsiteShortcuts.setHidden(false);
       paintRoom();
       watchRoom();
-      arrive();
     });
 
     // The room writing the night key reaches the shell here too.
